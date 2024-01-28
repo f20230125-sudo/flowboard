@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # Generates Next's route types first, then runs tsc.
+      - name: Type check
+        run: npm run typecheck
+
+      # The tests never touch the network: fetch is always a stand-in.
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
