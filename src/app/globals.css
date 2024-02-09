@@ -1,26 +1,187 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Colours are named by role, not by shade. Each role has a light and a dark
+   value; components only ever use the role. */
+:root,
+[data-theme="light"] {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --line: #dfe3e8;
+  --line-strong: #c5cbd3;
+  --fg: #14171c;
+  --muted: #566070;
+  --faint: #7d8794;
+  --accent: #4f4fd1;
+  --accent-fg: #ffffff;
+  --accent-soft: #e9e9fd;
+  --ok: #15803d;
+  --warn: #b45309;
+  --bad: #c81e1e;
+  --grid: #d3d8de;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.06), 0 4px 12px rgb(16 24 40 / 0.06);
+
+  --group-start: #0f8a5f;
+  --group-actions: #2563eb;
+  --group-logic: #b7600a;
+  --group-data: #7c3aed;
+  --group-finish: #d11a4e;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0d10;
+  --surface: #14171c;
+  --surface-2: #1b1f26;
+  --line: #262b34;
+  --line-strong: #3a414d;
+  --fg: #e8eaee;
+  --muted: #a0a8b4;
+  --faint: #737c89;
+  --accent: #9090f8;
+  --accent-fg: #0b0d10;
+  --accent-soft: #20203f;
+  --ok: #3ddc97;
+  --warn: #f5b942;
+  --bad: #ff7b7b;
+  --grid: #20252d;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 16px rgb(0 0 0 / 0.35);
+
+  --group-start: #3ddc97;
+  --group-actions: #6aa8ff;
+  --group-logic: #f5b942;
+  --group-data: #b197fc;
+  --group-finish: #ff7a9c;
+
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --shadow-panel: var(--shadow);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Thin scrollbars that match the theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/* One focus ring everywhere, visible on both themes. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- Canvas ----------------------------------------------------------------- */
+
+.react-flow {
+  --xy-background-color: var(--bg);
+  --xy-background-pattern-color: var(--grid);
+  --xy-edge-stroke: var(--line-strong);
+  --xy-edge-stroke-selected: var(--accent);
+  --xy-connectionline-stroke: var(--accent);
+  --xy-handle-background-color: var(--surface);
+  --xy-handle-border-color: var(--line-strong);
+  --xy-minimap-background-color: var(--surface);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--bg) 70%, transparent);
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color-hover: var(--surface-2);
+  --xy-controls-button-color: var(--fg);
+  --xy-controls-button-border-color: var(--line);
+  --xy-selection-background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+  --xy-selection-border: 1px solid var(--accent);
+  --xy-attribution-background-color: transparent;
+}
+
+.react-flow__attribution a {
+  color: var(--faint);
+}
+
+.react-flow .react-flow__controls {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.react-flow .react-flow__minimap {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* The dots blocks connect by. The library's stylesheet loads after this one,
+   so these rules are written one step more specific to win over it. */
+.react-flow .react-flow__handle {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--line-strong);
+  background: var(--surface);
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.react-flow .react-flow__handle:hover,
+.react-flow .react-flow__handle.connectingfrom,
+.react-flow .react-flow__handle.connectingto {
+  transform: scale(1.35);
+  border-color: var(--accent);
+}
+
+/* While a connection is dragged: where it may land, and where it may not. */
+.react-flow .react-flow__handle.valid {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+.react-flow__node:focus-visible {
+  outline: none;
+}
+
+.react-flow__node:focus-visible .fb-block {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.react-flow .react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow .react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 2.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
