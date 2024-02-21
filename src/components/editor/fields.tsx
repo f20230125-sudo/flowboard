@@ -9,8 +9,10 @@ import { OPERATORS, type KeyValue } from "@/flow/schema";
 // The inputs a block's settings are made of. Which ones a block gets is
 // decided by its entry in the catalogue, not here.
 
-const INPUT =
-  "w-full rounded-lg border border-line bg-bg px-2.5 text-[13px] text-fg placeholder:text-faint transition-colors hover:border-line-strong";
+// No width here: a full-width field adds w-full, a row of two shares the space.
+const BOX =
+  "rounded-lg border border-line bg-bg px-2.5 text-[13px] text-fg placeholder:text-faint transition-colors hover:border-line-strong";
+const INPUT = `w-full ${BOX}`;
 const MONO = "font-mono text-[12.5px]";
 
 type FieldProps = {
@@ -221,7 +223,7 @@ function PairsField({ spec, value, onChange }: FieldProps) {
               aria-label={`${spec.label}: ${nameLabel.toLowerCase()} ${index + 1}`}
               spellCheck={false}
               autoComplete="off"
-              className={`${INPUT} ${MONO} h-8 w-[38%]`}
+              className={`${BOX} ${MONO} h-8 w-2/5 min-w-0`}
             />
             <input
               type="text"
@@ -231,7 +233,7 @@ function PairsField({ spec, value, onChange }: FieldProps) {
               aria-label={`${spec.label}: ${valueLabel.toLowerCase()} ${index + 1}`}
               spellCheck={false}
               autoComplete="off"
-              className={`${INPUT} ${MONO} h-8 min-w-0 flex-1`}
+              className={`${BOX} ${MONO} h-8 min-w-0 flex-1`}
             />
             <button
               type="button"

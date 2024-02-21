@@ -34,3 +34,19 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Install the browser for end-to-end tests
+        run: npx playwright install --with-deps chromium
+
+      # Drives the production build in a real browser. Outside APIs are
+      # replaced with stand-ins, so these do not depend on the network either.
+      - name: End-to-end tests
+        run: npm run e2e
+
+      - name: Keep the traces of failed end-to-end tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
