@@ -50,3 +50,36 @@ jobs:
           name: playwright-traces
           path: test-results/
           retention-days: 7
+
+  # Docker is not installed on the machine this project is written on, so this
+  # job is where the image is proven: it is built, started and asked to answer.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t flowboard:ci .
+
+      - name: Start a container and wait until it is healthy
+        run: |
+          docker run -d --name flowboard -p 3000:3000 flowboard:ci
+          for attempt in $(seq 1 30); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' flowboard)
+            if [ "$status" = "healthy" ]; then exit 0; fi
+            sleep 2
+          done
+          docker logs flowboard
+          exit 1
+
+      - name: Ask it for the pages and the REST routes
+        run: |
+          curl --fail --silent http://localhost:3000/api/health
+          curl --fail --silent http://localhost:3000/api/templates | grep -q '"heat-check"'
+          curl --fail --silent --output /dev/null http://localhost:3000/
+          test "$(docker exec flowboard whoami)" = "flowboard"
+
+      # Checks the manifest against the Kubernetes schemas. It is not applied
+      # to a cluster here.
+      - name: Validate the Kubernetes manifest
+        run: docker run --rm -v "$PWD/deploy:/deploy" ghcr.io/yannh/kubeconform:latest -strict -summary /deploy/k8s.yaml
