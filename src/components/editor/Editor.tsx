@@ -8,6 +8,7 @@ import { flowActions } from "@/store/flowSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectFlowId, selectFlowStatus } from "@/store/selectors";
 import { SettingsDialog } from "../SettingsDialog";
+import { ShortcutsDialog } from "./ShortcutsDialog";
 import { BottomPanel } from "./BottomPanel";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
@@ -71,6 +72,9 @@ function Workspace() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <TopBar />
+      <p className="border-b border-line bg-surface-2 px-3 py-1.5 text-center text-xs text-muted lg:hidden">
+        You can run this flow here. To edit it, open Flowboard on a wider screen.
+      </p>
       <div className="flex min-h-0 flex-1">
         <Palette />
         <main className="flex min-w-0 flex-1 flex-col">
@@ -82,6 +86,7 @@ function Workspace() {
         <Inspector />
       </div>
       <SettingsDialog />
+      <ShortcutsDialog />
     </div>
   );
 }

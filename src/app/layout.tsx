@@ -14,9 +14,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const DESCRIPTION = "Build a workflow by connecting blocks, then press Run and watch each step execute with its real data.";
+
+// On Vercel this is the site's public address, which link previews need.
+const SITE = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "http://localhost:3020";
+
 export const metadata: Metadata = {
-  title: "Flowboard",
-  description: "Build workflows by connecting blocks, then run them and watch each step.",
+  metadataBase: new URL(SITE),
+  title: { default: "Flowboard: a visual workflow builder", template: "%s · Flowboard" },
+  description: DESCRIPTION,
+  openGraph: { title: "Flowboard: a visual workflow builder", description: DESCRIPTION, type: "website", siteName: "Flowboard" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

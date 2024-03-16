@@ -1,13 +1,14 @@
 "use client";
 
 import { memo } from "react";
+import { shallowEqual } from "react-redux";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Ban, Check, LoaderCircle, SkipForward, X } from "lucide-react";
 import { CATALOG } from "@/flow/catalog";
 import { describeNode } from "@/flow/describe";
 import { useAppSelector } from "@/store/hooks";
 import type { StepState } from "@/store/runSlice";
-import { selectProblemsByNode, type CanvasNode } from "@/store/selectors";
+import { selectProblemBadge, type CanvasNode } from "@/store/selectors";
 import { BlockIcon, blockTone } from "./blockLook";
 import { STATUS_LABELS, formatMs } from "./runText";
 
@@ -22,8 +23,8 @@ const FRAME: Record<StepState["status"] | "idle", string> = {
   running: "border-accent fb-running",
   succeeded: "border-ok",
   failed: "border-bad ring-2 ring-bad/30",
-  skipped: "border-line opacity-55",
-  cancelled: "border-line opacity-55",
+  skipped: "border-dashed border-line-strong",
+  cancelled: "border-dashed border-line-strong",
 };
 
 function StatusChip({ step }: { step: StepState }) {
@@ -55,20 +56,24 @@ function BlockNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
   const branches = spec.outputs.length > 1;
 
   const step = useAppSelector((state) => state.run.steps[id]);
-  const problems = useAppSelector(selectProblemsByNode).get(id);
-  const errors = problems?.filter((problem) => problem.level === "error").length ?? 0;
-  const warnings = (problems?.length ?? 0) - errors;
+  const { errors, warnings, text: problemText } = useAppSelector(
+    (state) => selectProblemBadge(state, id),
+    shallowEqual,
+  );
 
   const frame = selected ? "border-accent ring-2 ring-accent/25" : FRAME[step?.status ?? "idle"];
-  // A selected block keeps its run colour on the dimming, not on the border.
-  const dimmed = selected && (step?.status === "skipped" || step?.status === "cancelled") ? "opacity-55" : "";
+  // A block that did not run steps back: flat background, quieter name, faded
+  // icon. Its text is not faded, so it stays readable.
+  const quiet = step?.status === "skipped" || step?.status === "cancelled";
 
   return (
     <div
-      className={`fb-block relative w-[240px] rounded-xl border bg-surface shadow-panel transition-[border-color,box-shadow,opacity] ${frame} ${dimmed}`}
+      className={`fb-block relative w-[240px] rounded-xl border transition-[border-color,box-shadow,background-color] ${frame} ${
+        quiet ? "bg-bg" : "bg-surface shadow-panel"
+      }`}
       style={{ borderLeft: `3px solid ${blockTone(node.type)}` }}
     >
-      {spec.hasInput && <Handle type="target" position={Position.Left} aria-label={`Connect into ${node.name}`} />}
+      {spec.hasInput && <Handle type="target" position={Position.Left} title="Connections arrive here" />}
 
       {step && <StatusChip step={step} />}
       {!step && (errors > 0 || warnings > 0) && (
@@ -76,7 +81,8 @@ function BlockNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
           className={`absolute -top-2.5 right-2 flex h-5 min-w-5 items-center justify-center rounded-full border bg-surface px-1.5 text-[10px] font-semibold ${
             errors > 0 ? "border-bad text-bad" : "border-warn text-warn"
           }`}
-          title={problems?.map((problem) => problem.message).join("\n")}
+          title={problemText}
+          role="img"
           aria-label={
             errors > 0
               ? `${errors} ${errors === 1 ? "problem" : "problems"} to fix`
@@ -88,9 +94,13 @@ function BlockNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
       )}
 
       <div className="flex items-center gap-2.5 px-3 py-2.5">
-        <BlockIcon type={node.type} />
+        <span className={quiet ? "opacity-50" : undefined}>
+          <BlockIcon type={node.type} />
+        </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-mono text-[13px] font-medium leading-tight text-fg">{node.name}</div>
+          <div className={`truncate font-mono text-[13px] font-medium leading-tight ${quiet ? "text-muted" : "text-fg"}`}>
+            {node.name}
+          </div>
           <div className="mt-0.5 truncate text-[11px] leading-tight text-muted">{describeNode(node)}</div>
         </div>
       </div>
@@ -103,9 +113,9 @@ function BlockNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
             return (
               <div
                 key={output.id}
-                className={`relative flex h-6 items-center justify-end pr-4 text-[11px] font-medium ${notTaken ? "opacity-40" : ""}`}
+                className="relative flex h-6 items-center justify-end pr-4 text-[11px] font-medium"
               >
-                <span className={output.id === "true" ? "text-ok" : "text-bad"}>
+                <span className={notTaken ? "text-faint line-through" : output.id === "true" ? "text-ok" : "text-bad"}>
                   {output.label}
                   {taken ? " ✓" : ""}
                 </span>
@@ -113,7 +123,7 @@ function BlockNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
                   type="source"
                   id={output.id}
                   position={Position.Right}
-                  aria-label={`Connect from the ${output.label} side of ${node.name}`}
+                  title={`Drag to connect the ${output.label} side`}
                 />
               </div>
             );
@@ -126,7 +136,7 @@ function BlockNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
             type="source"
             id={output.id}
             position={Position.Right}
-            aria-label={`Connect from ${node.name}`}
+            title="Drag to connect"
           />
         ))
       )}

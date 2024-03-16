@@ -1,7 +1,11 @@
 @import "tailwindcss";
 
 /* Colours are named by role, not by shade. Each role has a light and a dark
-   value; components only ever use the role. */
+   value; components only ever use the role.
+
+   The text colours (fg, muted, faint) are chosen to keep a contrast of at
+   least 4.5:1 against every background they sit on (bg, surface, surface-2),
+   which the accessibility tests check. */
 :root,
 [data-theme="light"] {
   --bg: #f4f5f7;
@@ -10,8 +14,8 @@
   --line: #dfe3e8;
   --line-strong: #c5cbd3;
   --fg: #14171c;
-  --muted: #566070;
-  --faint: #7d8794;
+  --muted: #4a5361;
+  --faint: #616a76;
   --accent: #4f4fd1;
   --accent-fg: #ffffff;
   --accent-soft: #e9e9fd;
@@ -37,8 +41,8 @@
   --line: #262b34;
   --line-strong: #3a414d;
   --fg: #e8eaee;
-  --muted: #a0a8b4;
-  --faint: #737c89;
+  --muted: #aab2bd;
+  --faint: #8b94a1;
   --accent: #9090f8;
   --accent-fg: #0b0d10;
   --accent-soft: #20203f;
