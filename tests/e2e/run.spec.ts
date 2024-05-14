@@ -60,13 +60,45 @@ test.describe("running a flow", () => {
     await expect(block(page, "result")).toContainText("Skipped");
   });
 
+  test("a busy API is asked again before the step is called a failure", async ({ page, context }) => {
+    const seen = await mockApis(context);
+    // Busy the first time, fine after that.
+    let calls = 0;
+    await context.route("https://api.open-meteo.com/**", (route) => {
+      calls += 1;
+      if (calls > 1) return route.fallback();
+      return route.fulfill({ status: 503, headers: { "access-control-allow-origin": "*" }, body: "busy" });
+    });
+    await openTemplate(page, /Heat check/, "getWeather");
+
+    await runButton(page).click();
+    await expect(page.getByRole("tab", { name: /Run succeeded/ })).toBeVisible();
+    expect(calls).toBe(2);
+    expect(seen).toHaveLength(1);
+
+    await block(page, "getWeather").click();
+    await expect(page.getByRole("tabpanel")).toContainText("Answered on try 2 of 3.");
+  });
+
+  test("when it stays busy, the failure says how often it was tried", async ({ page, context }) => {
+    const answers = defaultAnswers();
+    answers.weather = { status: 503, body: { reason: "The weather service is having trouble." } };
+    const seen = await mockApis(context, answers);
+    await openTemplate(page, /Heat check/, "getWeather");
+
+    await runButton(page).click();
+    await expect(page.getByRole("tab", { name: /Run failed/ })).toBeVisible();
+    await expect(page.getByRole("tabpanel").getByRole("alert")).toContainText("after 3 tries");
+    expect(seen).toHaveLength(3);
+  });
+
   test("a flow with problems does not run, and says what to fix", async ({ page, context }) => {
     await mockApis(context);
     await openTemplate(page, /Heat check/, "getWeather");
 
     // Empty the address of the request.
     await block(page, "getWeather").click();
-    await page.getByLabel("Address").fill("");
+    await page.getByRole("textbox", { name: "Address" }).fill("");
     await expect(block(page, "getWeather")).toContainText("1 to fix");
 
     await runButton(page).click();
@@ -75,7 +107,7 @@ test.describe("running a flow", () => {
     await expect(page.getByRole("tab", { name: /Run/ })).not.toContainText("succeeded");
 
     // Putting it back clears the problem.
-    await page.getByLabel("Address").fill("https://api.open-meteo.com/v1/forecast");
+    await page.getByRole("textbox", { name: "Address" }).fill("https://api.open-meteo.com/v1/forecast");
     await expect(problems).toContainText("No problems");
   });
 

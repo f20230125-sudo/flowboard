@@ -6,7 +6,7 @@ A visual workflow builder. Drag blocks onto a canvas, connect them, press Run, a
 
 [![CI](https://github.com/f20230125-sudo/flowboard/actions/workflows/ci.yml/badge.svg)](https://github.com/f20230125-sudo/flowboard/actions/workflows/ci.yml)
 
-![A flow after a run: the path that was taken is lit, the other is faded, and the panel shows the result](docs/screenshots/run.png)
+![Flowboard in use: Run is pressed and each block lights up as it executes, a block is clicked to show the data it returned, and a value from an earlier step is inserted into a setting with one click](docs/demo.gif)
 
 Built with Next.js 16, React 19, Redux Toolkit and TypeScript.
 
@@ -19,12 +19,15 @@ Built with Next.js 16, React 19, Redux Toolkit and TypeScript.
 
 Nothing to install, no account, no key.
 
+![A flow after a run: the path that was taken is lit, the other is faded, and the panel shows the result](docs/screenshots/run.png)
+
 ## What it does
 
 - **Eight blocks:** manual trigger, HTTP request, condition, set fields, filter list, AI step, delay, output.
 - **A real engine:** Run executes the flow. Blocks that are ready at the same time run together, a condition sends data down one side only, and a failed step stops the run and shows what the server said.
-- **Data between blocks:** a field can read another block's result with `{{ steps.getWeather.body.current.temperature_2m }}`. After a run, every value in the run panel offers its reference to copy.
-- **An editor that forgives:** undo and redo for everything, copy and paste between flows, autosave, and renaming a block rewrites every reference to it.
+- **Requests that cope with a busy API:** an HTTP request can be given extra tries. It calls again after a 429, 502, 503 or 504, or when no answer comes in time, waiting longer before each try, and the run panel says which try worked.
+- **Data between blocks:** a field can read another block's result with `{{ steps.getWeather.body.current.temperature_2m }}`. You do not have to type that: each such field lists the data of the steps before it, and pressing "insert" on a value puts its reference where the cursor was.
+- **An editor that forgives:** undo and redo for everything, copy and paste between flows, autosave, renaming a block rewrites every reference to it, and Tidy up lines the blocks up in the order they run.
 - **Checks before a run:** one trigger, no loops, required settings, references to blocks that do not exist or do not run first. Each problem is listed in plain words and marked on its block.
 - **Flows you can move:** export to a file, import it back, or copy a share link that carries the whole flow in the address.
 - **Light and dark themes**, and keyboard shortcuts for what you do often (press `?` in the editor).
@@ -142,6 +145,7 @@ On Kubernetes:
 
 ```bash
 docker build -t flowboard:local .
+kind load docker-image flowboard:local   # only on a kind cluster, which cannot see local images
 kubectl apply -f deploy/k8s.yaml
 kubectl port-forward service/flowboard 3000:80
 ```
@@ -158,28 +162,28 @@ Settings for your own copy:
 ## Tests
 
 ```bash
-npm test             # 272 unit tests (Vitest)
-npm run e2e          # 27 end-to-end tests (Playwright)
+npm test             # 295 unit tests (Vitest)
+npm run e2e          # 33 end-to-end tests (Playwright)
 npm run lint
 npm run typecheck
 ```
 
 No test touches the network. Unit tests hand the engine a stand-in for `fetch`; end-to-end tests answer the public APIs themselves.
 
-- **Engine:** ordering, branches, parallel paths, the limit on blocks running at once, stop, failure, loops, and every block on its own.
-- **Editor:** undo and redo, a drag as one step, merged typing, renaming with references, copy and paste, autosave.
+- **Engine:** ordering, branches, parallel paths, the limit on blocks running at once, stop, failure, loops, and every block on its own, including when a request tries again and when it does not.
+- **Editor:** undo and redo, a drag as one step, merged typing, renaming with references, copy and paste, autosave, and the tidy-up layout.
 - **Safety:** references that try to reach into JavaScript itself, the relay's refusals, files and links that are not flows.
-- **End to end:** build a flow by clicking and by dragging, run it, watch it fail, export and import it, open a share link in a second browser, set a key and see the model called, run a flow on a phone-sized screen.
-- **Accessibility:** an automated scan (axe) of the home page, the editor and the settings dialog, in the light and the dark theme. It checks labels, roles and colour contrast, and must find nothing.
+- **End to end:** build a flow by clicking and by dragging, insert a value from an earlier step, tidy the layout, run it, watch it fail, watch a busy API be asked again, export and import it, open a share link in a second browser, set a key and see the model called, run a flow on a phone-sized screen.
+- **Accessibility:** an automated scan (axe) of the home page, the editor, the list of values to insert and the settings dialog, in the light and the dark theme. It checks labels, roles and colour contrast, and must find nothing.
 - **Speed:** checked by hand with a flow of 100 blocks: it opens in about a third of a second and dragging a block holds 60 frames a second, because moving a block redraws only that block.
 
-CI runs all of it on every push, then builds the Docker image, starts a container, waits for its health check, and calls its routes.
+CI runs all of it on every push, then builds the Docker image, starts a container, waits for its health check, and calls its routes. Last, it starts a one-node Kubernetes cluster ([kind](https://kind.sigs.k8s.io)), applies the manifest, waits until both copies of the app pass their probes, and calls the app through the Service.
 
 ## Layout
 
 ```
 src/app/          pages and REST route handlers
-src/flow/         the saved shape of a flow, the block catalogue, validation, graph helpers
+src/flow/         the saved shape of a flow, the block catalogue, validation, graph helpers, the tidy-up layout
 src/engine/       the scheduler, references, conditions, and one executor per block
 src/store/        Redux slices, selectors, thunks, RTK Query
 src/storage/      FlowRepository, the browser implementation, share links
@@ -195,8 +199,9 @@ deploy/           the Kubernetes manifest
 
 - There are no loops and no arithmetic. Filter list handles the common "for each" case; a calculation needs an API or a model.
 - Flows are saved in one browser. Export or share a flow to move it.
-- The AI step is tested against stand-ins for the providers, not against a live model in CI, because that would need a key.
-- The Docker image is built and run in CI. The Kubernetes manifest is checked against the Kubernetes schemas there, but has not been applied to a cluster.
+- The AI step is tested against stand-ins for the providers, not against a live model in CI, because that would need a key. What needs no key was checked against the real services on 6 October 2026: Gemini, Groq and OpenAI accept calls from a browser on the live site, their replies to a bad key are read and shown, and the starting models for Gemini and Groq are ones their current lists offer to a new free key.
+- The Docker image and the Kubernetes manifest are built and run in CI, the manifest on a one-node test cluster. It has not run on a production cluster, and it has no Ingress, TLS or autoscaling.
+- Extra tries repeat the same request. They are off by default, and are meant for requests that only read: a request that creates something could create it twice.
 - Editing needs a screen at least 1024 pixels wide. On a phone a flow can be opened and run, but not edited.
 - The accessibility scan covers what a machine can check. Connecting two blocks still needs a pointer; the rest works from the keyboard.
 

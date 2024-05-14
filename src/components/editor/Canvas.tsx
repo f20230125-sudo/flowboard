@@ -4,6 +4,7 @@ import { useCallback, type DragEvent } from "react";
 import {
   Background,
   BackgroundVariant,
+  ControlButton,
   Controls,
   MiniMap,
   ReactFlow,
@@ -13,14 +14,16 @@ import {
   type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { WandSparkles } from "lucide-react";
 import { canConnect } from "@/flow/connect";
 import { NODE_TYPES, type NodeType } from "@/flow/schema";
-import { addBlock, connectBlocks } from "@/store/editorThunks";
+import { addBlock, connectBlocks, tidyUp } from "@/store/editorThunks";
 import { flowActions } from "@/store/flowSlice";
 import { useAppDispatch, useAppSelector, useAppStore } from "@/store/hooks";
 import { runActions } from "@/store/runSlice";
 import { selectCanvasEdges, selectCanvasNodes, type CanvasEdge, type CanvasNode } from "@/store/selectors";
 import { useTheme } from "../theme";
+import { useToast } from "../toast";
 import { BlockNode } from "./BlockNode";
 import { FlowEdge } from "./FlowEdgeView";
 import { blockTone } from "./blockLook";
@@ -45,7 +48,8 @@ export function Canvas() {
   const nodes = useAppSelector(selectCanvasNodes);
   const edges = useAppSelector(selectCanvasEdges);
   const { theme } = useTheme();
-  const { screenToFlowPosition } = useReactFlow();
+  const { showToast } = useToast();
+  const { screenToFlowPosition, fitView } = useReactFlow();
 
   const onNodesChange = useCallback(
     (changes: NodeChange<CanvasNode>[]) => dispatch(flowActions.canvasNodesChanged(changes as NodeChange[])),
@@ -78,6 +82,15 @@ export function Canvas() {
     },
     [dispatch, store],
   );
+
+  const onTidyUp = useCallback(() => {
+    if (!dispatch(tidyUp())) {
+      showToast("The blocks are already lined up.");
+      return;
+    }
+    // Bring the whole flow into view, once the canvas has drawn the new places.
+    requestAnimationFrame(() => void fitView({ ...fitViewOptions, duration: 300 }));
+  }, [dispatch, fitView, showToast]);
 
   const onDragOver = useCallback((event: DragEvent) => {
     if (!event.dataTransfer.types.includes(BLOCK_DRAG_TYPE)) return;
@@ -122,7 +135,17 @@ export function Canvas() {
       aria-label="Flow canvas"
     >
       <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} />
-      <Controls showInteractive={false} position="bottom-left" />
+      <Controls showInteractive={false} position="bottom-left">
+        {/* Moving blocks is editing, which a narrow screen does not offer. */}
+        <ControlButton
+          onClick={onTidyUp}
+          title="Tidy up: line the blocks up in the order they run"
+          aria-label="Tidy up the layout"
+          className="max-lg:hidden!"
+        >
+          <WandSparkles />
+        </ControlButton>
+      </Controls>
       <MiniMap
         pannable
         zoomable

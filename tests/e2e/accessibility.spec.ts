@@ -40,6 +40,26 @@ for (const theme of ["light", "dark"] as const) {
       expect(await violations(page)).toEqual([]);
     });
 
+    test("the list of values to insert, before and after a run", async ({ page, context }) => {
+      await mockApis(context);
+      await openTemplate(page, /Heat check/, "getWeather");
+      await block(page, "isTooHot").click();
+      await page.getByRole("button", { name: "Insert a value into Value" }).click();
+      await expect(page.getByRole("group", { name: "Values to insert into Value" })).toContainText("run the flow to see inside");
+      expect(await violations(page)).toEqual([]);
+
+      // After a run, the last block's list holds both kinds of row: real data,
+      // and a step on the side that was not taken, which says why it has none.
+      await runButton(page).click();
+      await expect(page.getByRole("tab", { name: /Run succeeded/ })).toBeVisible();
+      await block(page, "result").click();
+      await page.getByRole("button", { name: "Insert a value into Value" }).click();
+      const list = page.getByRole("group", { name: "Values to insert into Value" });
+      await expect(list).toContainText("temperature: 38.4");
+      await expect(list).toContainText("skipped in the last run");
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("the settings dialog", async ({ page, context }) => {
       await mockApis(context);
       await openTemplate(page, /Support ticket triage/, "classify");

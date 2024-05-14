@@ -14,6 +14,20 @@ export class StepError extends Error {
   }
 }
 
+/**
+ * What an AI provider said went wrong, or null when it said nothing readable.
+ * Most send { error: { message } }. Gemini wraps that in a list for some
+ * failures, and a few services send { error: "text" }.
+ */
+export function errorMessage(data: unknown): string | null {
+  const body: unknown = Array.isArray(data) ? data[0] : data;
+  if (body === null || typeof body !== "object") return null;
+  const error = (body as { error?: unknown }).error;
+  if (typeof error === "string") return error;
+  const message = (error as { message?: unknown } | null | undefined)?.message;
+  return typeof message === "string" ? message : null;
+}
+
 /** Where the AI step sends its request. Null means no model is available. */
 export type AiSettings = { baseUrl: string; apiKey: string; model: string };
 
