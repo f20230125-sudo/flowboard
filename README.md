@@ -199,7 +199,7 @@ deploy/           the Kubernetes manifest
 
 - There are no loops and no arithmetic. Filter list handles the common "for each" case; a calculation needs an API or a model.
 - Flows are saved in one browser. Export or share a flow to move it.
-- The AI step is tested against stand-ins for the providers, not against a live model in CI, because that would need a key. What needs no key was checked against the real services on 6 October 2026: Gemini, Groq and OpenAI accept calls from a browser on the live site, their replies to a bad key are read and shown, and the starting models for Gemini and Groq are ones their current lists offer to a new free key.
+- In CI the AI step is tested against stand-ins for the providers, because a live model needs a key. By hand, on 6 October 2026, both AI templates were run on the live site against Gemini with a free key, and each got a real reply in about a second and a half. Groq and OpenAI were checked only for what needs no key: they accept calls from a browser, and their replies to a bad key are read and shown. The starting Groq model is on Groq's current list but has not been called.
 - The Docker image and the Kubernetes manifest are built and run in CI, the manifest on a one-node test cluster. It has not run on a production cluster, and it has no Ingress, TLS or autoscaling.
 - Extra tries repeat the same request. They are off by default, and are meant for requests that only read: a request that creates something could create it twice.
 - Editing needs a screen at least 1024 pixels wide. On a phone a flow can be opened and run, but not edited.
