@@ -45,10 +45,10 @@ function ShortcutsList() {
         if (event.target === dialog.current) dialog.current?.close();
       }}
       aria-labelledby="shortcuts-title"
-      className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-2xl border border-line bg-surface p-0 text-fg shadow-panel backdrop:bg-black/50"
+      className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-block border border-rule bg-sheet p-0 text-ink shadow-overlay backdrop:bg-black/50"
     >
-      <header className="flex items-center justify-between border-b border-line p-4">
-        <h2 id="shortcuts-title" className="text-base font-semibold">
+      <header className="flex items-center justify-between border-b border-rule p-4">
+        <h2 id="shortcuts-title" className="text-base font-bold">
           Keyboard shortcuts
         </h2>
         <IconButton label="Close" onClick={() => dialog.current?.close()}>
@@ -58,7 +58,7 @@ function ShortcutsList() {
       <dl className="space-y-2.5 p-4">
         {SHORTCUTS.map(([keys, what]) => (
           <div key={what} className="flex items-center justify-between gap-4 text-[13px]">
-            <dt className="text-muted">{what}</dt>
+            <dt className="text-ink-2">{what}</dt>
             <dd className="flex shrink-0 items-center gap-1">
               {keys.map((key) => (
                 <Kbd key={key}>{key}</Kbd>
@@ -67,7 +67,7 @@ function ShortcutsList() {
           </div>
         ))}
       </dl>
-      <p className="border-t border-line px-4 py-3 text-[11px] text-faint">On a Mac, use Cmd in place of Ctrl.</p>
+      <p className="border-t border-rule px-4 py-3 text-[12.5px] text-ink-3">On a Mac, use Cmd in place of Ctrl.</p>
     </dialog>
   );
 }

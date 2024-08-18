@@ -23,7 +23,7 @@ import {
 } from "@/store/selectors";
 import { uiActions, type BottomTab } from "@/store/uiSlice";
 import { useToast } from "../toast";
-import { IconButton } from "../ui";
+import { IconButton, Scroll } from "../ui";
 import { BlockIcon } from "./blockLook";
 import { JsonTree } from "./JsonTree";
 import { SKIP_REASONS, STATUS_LABELS, formatMs } from "./runText";
@@ -61,43 +61,32 @@ export function BottomPanel() {
         : `${status === "succeeded" ? "succeeded" : status} in ${formatMs(ms)}`;
 
   return (
-    <section className="shrink-0 border-t border-line bg-surface" aria-label="Run and problems">
-      <div className="flex h-9 items-center gap-1 px-2">
-        <div className="flex items-center gap-1" role="tablist" aria-label="Panels">
-        <TabButton tab="run" active={tab === "run"}>
-          Run
-          {runSummary && (
-            <span
-              className={`font-normal ${
-                status === "succeeded" ? "text-ok" : status === "failed" ? "text-bad" : "text-muted"
-              }`}
-            >
-              {runSummary}
-            </span>
-          )}
-        </TabButton>
-        <TabButton tab="problems" active={tab === "problems"}>
-          Problems
-          {problems.length > 0 && (
-            <span
-              className={`rounded-full px-1.5 text-[11px] font-semibold ${
-                errorCount > 0 ? "bg-bad text-surface" : "bg-warn text-surface"
-              }`}
-            >
-              {problems.length}
-            </span>
-          )}
-        </TabButton>
+    <section className="shrink-0 border-t border-rule bg-sheet" aria-label="Run and problems">
+      <div className="flex h-10 items-end bg-ground px-2 shadow-[inset_0_-1px_0_var(--rule)]">
+        <div className="flex items-end gap-1" role="tablist" aria-label="Panels">
+          <TabButton tab="run" active={tab === "run"}>
+            Run
+            {runSummary && (
+              <span className={`font-normal ${status === "failed" ? "text-fail" : "text-ink-2"}`}>{runSummary}</span>
+            )}
+          </TabButton>
+          <TabButton tab="problems" active={tab === "problems"}>
+            Problems
+            {problems.length > 0 && (
+              <span className={`font-mono ${errorCount > 0 ? "text-fail" : "text-ink"}`}>{problems.length}</span>
+            )}
+          </TabButton>
         </div>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1 self-center">
           {hasFinishedRun && (
             <button
               type="button"
               onClick={openInHindsight}
-              className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              title="Open in Hindsight"
+              className="flex h-7 items-center gap-1.5 whitespace-nowrap rounded-control px-2 text-[12.5px] font-medium text-ink-2 transition-colors hover:bg-sheet-2 hover:text-ink max-sm:w-8 max-sm:justify-center max-sm:px-0"
             >
               <ExternalLink size={12} aria-hidden="true" />
-              Open in Hindsight
+              <span className="max-sm:sr-only">Open in Hindsight</span>
             </button>
           )}
           {tab && (
@@ -109,7 +98,7 @@ export function BottomPanel() {
       </div>
 
       {tab && (
-        <div className="h-64 border-t border-line" role="tabpanel">
+        <div className="h-64" role="tabpanel">
           {tab === "run" ? <RunView /> : <ProblemsView />}
         </div>
       )}
@@ -117,6 +106,7 @@ export function BottomPanel() {
   );
 }
 
+/** A selected tab is the colour of its panel, with a 2 px rule of ink on its top edge, joined to the panel below. */
 function TabButton({ tab, active, children }: { tab: BottomTab; active: boolean; children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   return (
@@ -125,8 +115,8 @@ function TabButton({ tab, active, children }: { tab: BottomTab; active: boolean;
       role="tab"
       aria-selected={active}
       onClick={() => dispatch(uiActions.bottomTabToggled(tab))}
-      className={`flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors ${
-        active ? "bg-surface-2 text-fg" : "text-muted hover:bg-surface-2 hover:text-fg"
+      className={`flex items-center gap-2 whitespace-nowrap rounded-t-tab px-3 text-[13px] font-bold transition-colors ${
+        active ? "h-9 border-t-2 border-ink bg-sheet text-ink" : "mb-px h-8 text-ink-2 hover:bg-sheet-2 hover:text-ink"
       }`}
     >
       {children}
@@ -137,27 +127,33 @@ function TabButton({ tab, active, children }: { tab: BottomTab; active: boolean;
 // --- Run -------------------------------------------------------------------------
 
 function StatusMark({ status }: { status: StepState["status"] }) {
-  if (status === "running") return <LoaderCircle size={13} className="animate-spin text-accent" />;
-  if (status === "succeeded") return <Check size={13} strokeWidth={3} className="text-ok" />;
-  if (status === "failed") return <X size={13} strokeWidth={3} className="text-bad" />;
-  if (status === "skipped") return <SkipForward size={12} className="text-faint" />;
-  return <Ban size={12} className="text-faint" />;
+  if (status === "running") return <LoaderCircle size={13} className="animate-spin text-ink-2" />;
+  if (status === "succeeded") return <Check size={13} strokeWidth={3} className="text-ink" />;
+  if (status === "failed") return <X size={13} strokeWidth={3} className="text-fail" />;
+  if (status === "skipped") return <SkipForward size={12} className="text-ink-3" />;
+  return <Ban size={12} className="text-ink-3" />;
 }
 
-function RunView() {
+/**
+ * The trace of the last run: the steps in the order they ran, and the data of
+ * the one that is open. In the editor it fills the panel under the canvas; on
+ * the home page (`page`) it sits under the stage and takes the height it needs.
+ */
+export function RunView({ variant = "panel" }: { variant?: "panel" | "page" }) {
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectRunStatus);
   const order = useAppSelector(selectRunOrder);
   const steps = useAppSelector(selectRunSteps);
   const openStepId = useAppSelector(selectOpenStepId);
   const nodes = useAppSelector(selectNodes);
+  const page = variant === "page";
 
   if (status === "idle") {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-1 px-6 text-center">
-        <p className="text-sm font-medium text-fg">Nothing has run yet</p>
-        <p className="max-w-md text-xs leading-relaxed text-muted">
-          Press Run to execute the flow. Each step shows up here with the data it received and what it returned.
+      <div className={`flex flex-col items-start gap-1 ${page ? "py-1" : "p-4"}`}>
+        <p className="text-sm font-bold text-ink">Nothing has run yet</p>
+        <p className="max-w-[62ch] text-[13px] leading-relaxed text-ink-2">
+          Press Run. Each step shows up here with the data it received and what it returned.
         </p>
       </div>
     );
@@ -167,54 +163,59 @@ function RunView() {
   const openStep = openStepId ? steps[openStepId] : undefined;
 
   return (
-    <div className="flex h-full">
-      <ol className="w-36 shrink-0 overflow-y-auto border-r border-line p-1.5 sm:w-60" aria-label="Steps of the last run">
-        {order.map((id) => {
-          const step = steps[id];
-          const node = byId.get(id);
-          return (
-            <li key={id}>
-              <button
-                type="button"
-                onClick={() => {
-                  dispatch(runActions.stepOpened(id));
-                  if (node) dispatch(flowActions.selectionSet({ nodeIds: [id] }));
-                }}
-                aria-current={id === openStepId}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
-                  id === openStepId ? "bg-accent-soft" : "hover:bg-surface-2"
-                }`}
-              >
-                <StatusMark status={step.status} />
-                <span
-                  className={`min-w-0 flex-1 truncate font-mono text-xs ${
-                    step.status === "skipped" || step.status === "cancelled" ? "text-muted" : "text-fg"
-                  }`}
+    <div className={page ? "grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]" : "flex h-full"}>
+      <Scroll
+        label="Steps of the run"
+        className={page ? "min-w-0" : "w-32 shrink-0 overflow-y-auto border-r border-rule sm:w-60"}
+      >
+        <ol aria-label="Steps of the last run" className={page ? "border-t border-rule" : ""}>
+          {order.map((id) => {
+            const step = steps[id];
+            const node = byId.get(id);
+            return (
+              <li key={id} className="border-b border-rule">
+                <button
+                  type="button"
+                  onClick={() => {
+                    dispatch(runActions.stepOpened(id));
+                    if (node) dispatch(flowActions.selectionSet({ nodeIds: [id] }));
+                  }}
+                  aria-current={id === openStepId}
+                  className={`flex w-full items-center gap-2 px-2.5 text-left transition-colors ${
+                    page ? "min-h-11" : "min-h-9"
+                  } ${id === openStepId ? "bg-sheet-2" : "hover:bg-sheet-2"}`}
                 >
-                  {node?.name ?? "(deleted block)"}
-                </span>
-                <span className="shrink-0 text-[11px] text-faint">
-                  {step.status === "succeeded" || step.status === "failed" ? formatMs(step.ms) : STATUS_LABELS[step.status]}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+                  <StatusMark status={step.status} />
+                  <span
+                    className={`min-w-0 flex-1 truncate font-mono text-[13px] ${
+                      id === openStepId ? "font-bold" : "font-semibold"
+                    } ${step.status === "skipped" || step.status === "cancelled" ? "text-ink-3" : "text-ink"}`}
+                  >
+                    {node?.name ?? "(deleted block)"}
+                  </span>
+                  <span className="shrink-0 font-mono text-[12.5px] text-ink-2">
+                    {step.status === "succeeded" || step.status === "failed" ? formatMs(step.ms) : STATUS_LABELS[step.status]}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </Scroll>
 
-      <div className="min-w-0 flex-1 overflow-y-auto">
+      <Scroll label="Data of the open step" className={page ? "min-w-0" : "min-w-0 flex-1 overflow-y-auto"}>
         {openStep ? (
           // Keyed by step, so the Output/Input choice starts fresh for each.
-          <StepDetail key={openStep.nodeId} step={openStep} node={byId.get(openStep.nodeId)} />
+          <StepDetail key={openStep.nodeId} step={openStep} node={byId.get(openStep.nodeId)} flush={page} />
         ) : (
-          <p className="p-4 text-xs text-muted">Choose a step on the left to see its data.</p>
+          <p className="p-4 text-[13px] text-ink-2">Choose a step on the left to see its data.</p>
         )}
-      </div>
+      </Scroll>
     </div>
   );
 }
 
-function StepDetail({ step, node }: { step: StepState; node: FlowNode | undefined }) {
+function StepDetail({ step, node, flush = false }: { step: StepState; node: FlowNode | undefined; flush?: boolean }) {
   const { showToast } = useToast();
   const [view, setView] = useState<"output" | "input">("output");
 
@@ -229,27 +230,34 @@ function StepDetail({ step, node }: { step: StepState; node: FlowNode | undefine
   const hasInput = step.input !== undefined && step.input !== null;
 
   return (
-    <div className="p-3">
-      <div className="flex items-center gap-2">
-        {node && <BlockIcon type={node.type} size={24} />}
-        <h3 className="min-w-0 truncate font-mono text-[13px] font-semibold text-fg">{node?.name ?? "(deleted block)"}</h3>
-        {node && <span className="shrink-0 text-xs text-muted">{CATALOG[node.type].title}</span>}
-        <span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs text-muted">
+    <div className={flush ? "" : "p-3"}>
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        {node && <BlockIcon type={node.type} />}
+        <h3 className="min-w-0 truncate font-mono text-[14px] font-semibold text-ink">{node?.name ?? "(deleted block)"}</h3>
+        {node && <span className="shrink-0 text-[12.5px] text-ink-2">{CATALOG[node.type].title}</span>}
+        <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[12.5px] text-ink-2">
           <StatusMark status={step.status} />
-          {STATUS_LABELS[step.status]}
-          {step.ms !== undefined && ` · ${formatMs(step.ms)}`}
+          <span>
+            {STATUS_LABELS[step.status]}
+            {step.ms !== undefined && (
+              <>
+                {" in "}
+                <span className="font-mono">{formatMs(step.ms)}</span>
+              </>
+            )}
+          </span>
         </span>
       </div>
 
       {step.error && (
-        <div className="mt-3 rounded-lg border border-bad/40 p-2.5" role="alert">
-          <p className="flex gap-2 text-xs leading-relaxed text-bad">
-            <CircleAlert size={14} className="mt-0.5 shrink-0" />
+        <div className="mt-3" role="alert">
+          <p className="flex gap-2 text-[13px] font-medium leading-relaxed text-fail">
+            <CircleAlert size={15} className="mt-0.5 shrink-0" />
             <span>{step.error.message}</span>
           </p>
           {step.error.detail !== undefined && (
-            <div className="mt-2 border-t border-line pt-2">
-              <p className="mb-1 text-[11px] font-medium text-muted">What came back</p>
+            <div className="mt-2 border-t border-rule pt-2">
+              <p className="mb-1 text-[12.5px] font-semibold text-ink-2">What came back</p>
               <JsonTree value={step.error.detail} />
             </div>
           )}
@@ -257,42 +265,44 @@ function StepDetail({ step, node }: { step: StepState; node: FlowNode | undefine
       )}
 
       {step.status === "skipped" && step.reason && (
-        <p className="mt-3 text-xs leading-relaxed text-muted">{SKIP_REASONS[step.reason]}</p>
+        <p className="mt-3 text-[13px] leading-relaxed text-ink-2">{SKIP_REASONS[step.reason]}</p>
       )}
       {step.status === "cancelled" && (
-        <p className="mt-3 text-xs leading-relaxed text-muted">The run ended while this step was still working.</p>
+        <p className="mt-3 text-[13px] leading-relaxed text-ink-2">The run ended while this step was still working.</p>
       )}
-      {step.note && <p className="mt-3 text-xs italic leading-relaxed text-muted">{step.note}</p>}
+      {step.note && <p className="mt-3 text-[13px] leading-relaxed text-ink-2">{step.note}</p>}
 
       {(hasOutput || hasInput) && (
         <>
-          <div className="mt-3 flex items-center gap-1">
-            <div className="flex items-center gap-1" role="tablist" aria-label="Data of this step">
-            {(["output", "input"] as const).map((kind) => (
-              <button
-                key={kind}
-                type="button"
-                role="tab"
-                aria-selected={view === kind}
-                disabled={kind === "output" ? !hasOutput : !hasInput}
-                onClick={() => setView(kind)}
-                className={`h-6 rounded-md px-2 text-[11px] font-medium capitalize transition-colors disabled:opacity-40 ${
-                  view === kind ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"
-                }`}
-              >
-                {kind === "output" ? "Returned" : "Received"}
-              </button>
-            ))}
+          <div className="mt-3 flex items-end gap-3">
+            <div className="flex items-end gap-1" role="tablist" aria-label="Data of this step">
+              {(["output", "input"] as const).map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === kind}
+                  aria-disabled={(kind === "output" ? !hasOutput : !hasInput) || undefined}
+                  onClick={() => {
+                    if (kind === "output" ? hasOutput : hasInput) setView(kind);
+                  }}
+                  className={`rounded-t-tab px-3 text-[12.5px] font-bold transition-colors aria-disabled:opacity-45 ${
+                    view === kind ? "h-8 border-t-2 border-ink bg-sheet-2 text-ink" : "mb-px h-7 text-ink-2 hover:text-ink"
+                  }`}
+                >
+                  {kind === "output" ? "Returned" : "Received"}
+                </button>
+              ))}
             </div>
-            <span className="ml-2 text-[11px] text-faint">Hover a row and press “ref” to copy its reference.</span>
+            <span className="hidden pb-1.5 text-[12px] text-ink-3 lg:block">Hover a row and press “ref” to copy its reference.</span>
           </div>
-          <div className="mt-1.5 rounded-lg border border-line bg-bg p-1.5">
+          <div className="rounded-b-control rounded-tr-control bg-sheet-2 p-2">
             {view === "output" && hasOutput ? (
               <JsonTree value={step.output!} path={node ? `steps.${node.name}` : undefined} onPick={copyReference} />
             ) : hasInput ? (
               <JsonTree value={step.input!} path="input" onPick={copyReference} />
             ) : (
-              <p className="p-1.5 text-xs text-muted">This step returned nothing.</p>
+              <p className="p-1.5 text-[13px] text-ink-2">This step returned nothing.</p>
             )}
           </div>
         </>
@@ -311,11 +321,11 @@ function ProblemsView() {
 
   if (problems.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-        <p className="flex items-center gap-1.5 text-sm font-medium text-ok">
+      <div className="flex flex-col items-start gap-1 p-4">
+        <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
           <Check size={15} strokeWidth={3} /> No problems
         </p>
-        <p className="text-xs text-muted">The flow is ready to run.</p>
+        <p className="text-[13px] text-ink-2">The flow is ready to run.</p>
       </div>
     );
   }
@@ -327,37 +337,39 @@ function ProblemsView() {
   };
 
   return (
-    <ul className="h-full overflow-y-auto p-1.5">
-      {problems.map((problem, index) => {
-        const content = (
-          <>
-            {problem.level === "error" ? (
-              <CircleAlert size={14} className="mt-0.5 shrink-0 text-bad" />
-            ) : (
-              <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warn" />
-            )}
-            <span className="min-w-0 flex-1 text-xs leading-relaxed text-fg">{problem.message}</span>
-            {problem.nodeId && (
-              <span className="shrink-0 font-mono text-[11px] text-muted">{nameOf.get(problem.nodeId)}</span>
-            )}
-          </>
-        );
-        return (
-          <li key={index}>
-            {problem.nodeId ? (
-              <button
-                type="button"
-                onClick={() => show(problem.nodeId!)}
-                className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface-2"
-              >
-                {content}
-              </button>
-            ) : (
-              <div className="flex items-start gap-2 px-2 py-1.5">{content}</div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    <Scroll label="Problems with the flow" className="h-full overflow-y-auto">
+      <ul>
+        {problems.map((problem, index) => {
+          const content = (
+            <>
+              {problem.level === "error" ? (
+                <CircleAlert size={14} className="mt-0.5 shrink-0 text-fail" />
+              ) : (
+                <TriangleAlert size={14} className="mt-0.5 shrink-0 text-ink" />
+              )}
+              <span className="min-w-0 flex-1 text-[13px] leading-relaxed text-ink">{problem.message}</span>
+              {problem.nodeId && (
+                <span className="shrink-0 font-mono text-[12.5px] text-ink-2">{nameOf.get(problem.nodeId)}</span>
+              )}
+            </>
+          );
+          return (
+            <li key={index} className="border-b border-rule">
+              {problem.nodeId ? (
+                <button
+                  type="button"
+                  onClick={() => show(problem.nodeId!)}
+                  className="flex min-h-9 w-full items-start gap-2 px-3 py-2 text-left hover:bg-sheet-2"
+                >
+                  {content}
+                </button>
+              ) : (
+                <div className="flex items-start gap-2 px-3 py-2">{content}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </Scroll>
   );
 }

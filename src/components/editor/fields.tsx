@@ -12,7 +12,7 @@ import { useReferencePicker } from "./ReferencePicker";
 
 // No width here: a full-width field adds w-full, a row of two shares the space.
 const BOX =
-  "rounded-lg border border-line bg-bg px-2.5 text-[13px] text-fg placeholder:text-faint transition-colors hover:border-line-strong";
+  "rounded-control border border-edge bg-sheet px-2.5 text-[13px] text-ink placeholder:text-ink-3 transition-colors hover:border-ink-2";
 const INPUT = `w-full ${BOX}`;
 const MONO = "font-mono text-[12.5px]";
 
@@ -24,14 +24,14 @@ type FieldProps = {
 
 function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1 block text-xs font-medium text-muted">
+    <label htmlFor={htmlFor} className="mb-1 block text-[12.5px] font-semibold text-ink-2">
       {children}
     </label>
   );
 }
 
 function Help({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-[11px] leading-relaxed text-faint">{children}</p>;
+  return <p className="mt-1 text-[12px] leading-relaxed text-ink-3">{children}</p>;
 }
 
 function TextField({ spec, value, onChange }: FieldProps) {
@@ -89,13 +89,14 @@ function TextAreaField({ spec, value, onChange }: FieldProps) {
   );
 }
 
+/** Whether the text is JSON, said in plain words. The parser's own message is not shown: it is written for programmers. */
 function jsonProblem(text: string): string | null {
   if (text.trim() === "") return null;
   try {
     JSON.parse(text);
     return null;
-  } catch (problem) {
-    return (problem as Error).message;
+  } catch {
+    return "Check for a missing comma, quote or bracket.";
   }
 }
 
@@ -116,10 +117,10 @@ function JsonField({ spec, value, onChange }: FieldProps) {
         aria-invalid={problem !== null}
         aria-describedby={`${id}-state`}
         style={{ fieldSizing: "content" } as React.CSSProperties}
-        className={`${INPUT} ${MONO} max-h-64 min-h-[5.5rem] resize-y py-1.5 leading-relaxed ${problem ? "border-bad" : ""}`}
+        className={`${INPUT} ${MONO} max-h-64 min-h-[5.5rem] resize-y py-1.5 leading-relaxed ${problem ? "border-fail" : ""}`}
       />
-      <p id={`${id}-state`} className={`mt-1 text-[11px] ${problem ? "text-bad" : "text-faint"}`}>
-        {problem ? `Not valid JSON: ${problem}` : spec.help}
+      <p id={`${id}-state`} className={`mt-1 text-[12px] leading-relaxed ${problem ? "text-fail" : "text-ink-3"}`}>
+        {problem ? `This is not valid JSON yet. ${problem}` : spec.help}
       </p>
     </div>
   );
@@ -206,15 +207,15 @@ function ToggleField({ spec, value, onChange }: FieldProps) {
         role="switch"
         aria-checked={on}
         onClick={() => onChange(!on)}
-        className="group flex w-full items-center justify-between gap-3 rounded-lg py-0.5 text-left"
+        className="group flex min-h-8 w-full items-center justify-between gap-3 rounded-control text-left"
       >
-        <span className="text-xs font-medium text-muted group-hover:text-fg">{spec.label}</span>
+        <span className="text-[12.5px] font-semibold text-ink-2 group-hover:text-ink">{spec.label}</span>
         <span
           aria-hidden
-          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${on ? "bg-accent" : "bg-line-strong"}`}
+          className={`relative h-5 w-9 shrink-0 rounded-[5px] transition-colors ${on ? "bg-ink" : "bg-edge"}`}
         >
           <span
-            className={`absolute top-0.5 h-4 w-4 rounded-full bg-surface shadow transition-[left] ${on ? "left-[18px]" : "left-0.5"}`}
+            className={`absolute top-0.5 h-4 w-4 rounded-[3px] bg-sheet transition-[left] ${on ? "left-[18px]" : "left-0.5"}`}
           />
         </span>
       </button>
@@ -269,7 +270,7 @@ function PairRow({ pair, nameLabel, valueLabel, describe, onChange, onRemove }: 
           aria-label={`Remove ${describe(nameLabel)}`}
           title="Remove"
           onClick={onRemove}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-faint hover:bg-surface-2 hover:text-bad"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-ink-2 hover:bg-sheet-2 hover:text-fail"
         >
           <X size={14} />
         </button>
@@ -290,7 +291,7 @@ function PairsField({ spec, value, onChange }: FieldProps) {
     // A fieldset is as wide as its content unless told otherwise, and an open
     // list of values is wide.
     <fieldset className="min-w-0">
-      <legend className="mb-1 block text-xs font-medium text-muted">{spec.label}</legend>
+      <legend className="mb-1 block text-[12.5px] font-semibold text-ink-2">{spec.label}</legend>
       <div className="space-y-1.5">
         {pairs.map((pair, index) => (
           <PairRow
@@ -308,7 +309,7 @@ function PairsField({ spec, value, onChange }: FieldProps) {
       <button
         type="button"
         onClick={() => onChange([...pairs, { key: "", value: "" }])}
-        className="mt-1.5 inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-accent hover:bg-accent-soft"
+        className="mt-1.5 inline-flex h-7 items-center gap-1 rounded-control px-1.5 text-xs font-semibold text-ink hover:bg-sheet-2"
       >
         <Plus size={13} /> Add {nameLabel.toLowerCase()}
       </button>

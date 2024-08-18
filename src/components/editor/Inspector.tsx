@@ -21,13 +21,13 @@ import {
   selectSelectedEdgeIds,
   selectSelectedNodes,
 } from "@/store/selectors";
-import { Button, Kbd } from "../ui";
+import { Button, Kbd, Scroll } from "../ui";
 import { BlockIcon } from "./blockLook";
 import { Field } from "./fields";
 import { ReferenceSources } from "./ReferencePicker";
 
 const INPUT =
-  "w-full rounded-lg border border-line bg-bg px-2.5 text-[13px] text-fg placeholder:text-faint transition-colors hover:border-line-strong";
+  "w-full rounded-control border border-edge bg-sheet px-2.5 text-[13px] text-ink placeholder:text-ink-3 transition-colors hover:border-ink-2";
 
 /** The panel on the right: the settings of whatever is selected. */
 export function Inspector() {
@@ -35,7 +35,7 @@ export function Inspector() {
   const selectedEdges = useAppSelector(selectSelectedEdgeIds);
 
   return (
-    <aside className="hidden w-[19rem] shrink-0 flex-col border-l border-line bg-surface lg:flex" aria-label="Settings">
+    <aside className="hidden w-[19rem] shrink-0 flex-col border-l border-rule bg-sheet lg:flex" aria-label="Settings">
       {selected.length === 1 ? (
         // Keyed by block, so drafts in the form never carry over to another block.
         <BlockSettings key={selected[0].id} node={selected[0]} />
@@ -56,13 +56,11 @@ export function Inspector() {
 function ProblemList({ problems }: { problems: Problem[] }) {
   if (problems.length === 0) return null;
   return (
-    <ul className="space-y-1.5">
+    <ul className="space-y-2">
       {problems.map((problem, index) => (
         <li
           key={index}
-          className={`flex gap-2 rounded-lg border px-2.5 py-2 text-xs leading-relaxed ${
-            problem.level === "error" ? "border-bad/40 text-bad" : "border-warn/40 text-warn"
-          }`}
+          className={`flex gap-2 text-[12.5px] leading-relaxed ${problem.level === "error" ? "text-fail" : "text-ink"}`}
         >
           {problem.level === "error" ? (
             <CircleAlert size={14} className="mt-0.5 shrink-0" />
@@ -85,15 +83,15 @@ function BlockSettings({ node }: { node: FlowNode }) {
 
   return (
     <>
-      <header className="flex items-center gap-2.5 border-b border-line p-3">
-        <BlockIcon type={node.type} size={32} />
+      <header className="flex items-center gap-2.5 border-b border-rule p-3">
+        <BlockIcon type={node.type} size={18} />
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-semibold text-fg">{spec.title}</h2>
-          <p className="truncate text-xs text-muted">{spec.summary}</p>
+          <h2 className="truncate text-sm font-bold text-ink">{spec.title}</h2>
+          <p className="truncate text-[12.5px] text-ink-2">{spec.summary}</p>
         </div>
       </header>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-3">
+      <Scroll label="Settings of this block" className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
         <ProblemList problems={problems} />
         {node.type === "ai" && <ModelNote />}
         {/* Keyed by name, so the draft resets when a rename is undone. */}
@@ -110,9 +108,9 @@ function BlockSettings({ node }: { node: FlowNode }) {
             ),
           )}
         </ReferenceSources>
-      </div>
+      </Scroll>
 
-      <footer className="flex items-center gap-2 border-t border-line p-3">
+      <footer className="flex items-center gap-2 border-t border-rule p-3">
         <Button size="sm" onClick={() => dispatch(duplicateSelection())}>
           <CopyPlus size={13} /> Duplicate
         </Button>
@@ -129,17 +127,17 @@ function ModelNote() {
   const hasModel = useAppSelector(selectHasModel);
   const model = useAppSelector(selectAiConfig).model;
   return (
-    <p className="rounded-lg border border-line bg-bg px-2.5 py-2 text-xs leading-relaxed text-muted">
+    <p className="text-[12.5px] leading-relaxed text-ink-2">
       {hasModel ? (
         <>
-          Calls <span className="font-mono text-fg">{model}</span> with your key.{" "}
+          Calls <span className="font-mono text-ink">{model}</span> with your key.{" "}
         </>
       ) : (
         <>No model is set, so this step returns its sample reply. </>
       )}
       <button
         type="button"
-        className="font-medium text-accent underline"
+        className="inline-flex min-h-6 items-center font-semibold text-ink underline"
         onClick={() => dispatch(settingsActions.settingsOpened())}
       >
         {hasModel ? "Change" : "Choose a model"}
@@ -170,7 +168,7 @@ function NameField({ node }: { node: FlowNode }) {
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-medium text-muted">
+      <label htmlFor={id} className="mb-1 block text-[12.5px] font-semibold text-ink-2">
         Name
       </label>
       <input
@@ -190,9 +188,9 @@ function NameField({ node }: { node: FlowNode }) {
         autoComplete="off"
         aria-invalid={error !== null}
         aria-describedby={`${id}-help`}
-        className={`${INPUT} h-8 font-mono text-[12.5px] ${error ? "border-bad" : ""}`}
+        className={`${INPUT} h-8 font-mono text-[12.5px] ${error ? "border-fail" : ""}`}
       />
-      <p id={`${id}-help`} className={`mt-1 text-[11px] leading-relaxed ${error ? "text-bad" : "text-faint"}`}>
+      <p id={`${id}-help`} className={`mt-1 text-[12px] leading-relaxed ${error ? "text-fail" : "text-ink-3"}`}>
         {error ?? (
           <>
             Other blocks read this one as <code className="font-mono">{`{{ steps.${node.name} }}`}</code>
@@ -207,7 +205,7 @@ function SelectionActions({ title, connectionsOnly = false }: { title: string; c
   const dispatch = useAppDispatch();
   return (
     <div className="space-y-3 p-3">
-      <h2 className="text-sm font-semibold text-fg">{title}</h2>
+      <h2 className="text-sm font-bold text-ink">{title}</h2>
       <div className="flex items-center gap-2">
         {!connectionsOnly && (
           <Button size="sm" onClick={() => dispatch(duplicateSelection())}>
@@ -218,7 +216,7 @@ function SelectionActions({ title, connectionsOnly = false }: { title: string; c
           <Trash2 size={13} /> Delete
         </Button>
       </div>
-      <p className="text-xs leading-relaxed text-muted">
+      <p className="text-[12.5px] leading-relaxed text-ink-2">
         <Kbd>Delete</Kbd> removes the selection. <Kbd>Ctrl</Kbd> <Kbd>Z</Kbd> brings it back.
       </p>
     </div>
@@ -235,17 +233,17 @@ function FlowDetails() {
 
   return (
     <>
-      <header className="border-b border-line p-3">
-        <h2 className="truncate text-sm font-semibold text-fg">{name}</h2>
-        <p className="text-xs text-muted">
+      <header className="border-b border-rule p-3">
+        <h2 className="truncate text-sm font-bold text-ink">{name}</h2>
+        <p className="text-[12.5px] text-ink-2">
           {blockCount} {blockCount === 1 ? "block" : "blocks"}, {connectionCount}{" "}
           {connectionCount === 1 ? "connection" : "connections"}
         </p>
       </header>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-3">
+      <Scroll label="About this flow" className="min-h-0 flex-1 space-y-5 overflow-y-auto p-3">
         <div>
-          <label htmlFor={descriptionId} className="mb-1 block text-xs font-medium text-muted">
+          <label htmlFor={descriptionId} className="mb-1 block text-[12.5px] font-semibold text-ink-2">
             Description
           </label>
           <textarea
@@ -258,9 +256,9 @@ function FlowDetails() {
           />
         </div>
 
-        <div className="rounded-lg border border-line p-3 text-xs leading-relaxed text-muted">
-          <p className="mb-2 font-medium text-fg">Getting around</p>
-          <ul className="space-y-1.5">
+        <div className="text-[12.5px] leading-relaxed text-ink-2">
+          <h3 className="mb-2 text-[13px] font-semibold text-ink">Getting around</h3>
+          <ul className="space-y-2">
             <li>Select a block to edit its settings here.</li>
             <li>Drag from the dot on a block&apos;s right edge to connect it.</li>
             <li>
@@ -274,7 +272,7 @@ function FlowDetails() {
             </li>
           </ul>
         </div>
-      </div>
+      </Scroll>
     </>
   );
 }

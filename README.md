@@ -12,14 +12,20 @@ Built with Next.js 16, React 19, Redux Toolkit and TypeScript.
 
 ## Try it in a minute
 
-1. Open the [live demo](https://flowboard-flax-seven.vercel.app) and pick **Heat check**.
-2. Press **Run**. The flow calls a real weather API, checks the temperature, and takes one of two paths.
+1. Open the [live demo](https://flowboard-flax-seven.vercel.app). **Heat check** is drawn on the first screen, and nothing runs until you press Run.
+2. Press **Run**. The flow calls a real weather API (api.open-meteo.com, from your browser), checks the temperature, and takes one of two paths. Press **Edit this flow** to open a copy in the editor.
 3. Click any block to see what it received and what it returned.
 4. Change `limit` in the trigger's sample data to `10` and run again. The other path lights up.
 
 Nothing to install, no account, no key.
 
+![The first screen: Heat check drawn on a dotted stage after Run, the wire that carried data in orchid, the step list under it](docs/screenshots/home.png)
+
 ![A flow after a run: the path that was taken is lit, the other is faded, and the panel shows the result](docs/screenshots/run.png)
+
+## The look
+
+Ink on a dotted grid. The page has no colour until a flow has run; then the wires that carried data light up in orchid, and nothing else does (red is only for a failure). One typeface, Sono (SIL Open Font License, self-hosted by `next/font`), with a proportional voice for what Flowboard says and a mono voice for names and data. A block's shape shows its kind: Start and Output have round ends, steps are rectangles, a Condition has a fork with two exits. A block that ran wears a small readout tab with its time. The reasons, the colours and their contrast ratios are in [DESIGN.md](DESIGN.md).
 
 ## What it does
 
@@ -167,7 +173,7 @@ Settings for your own copy:
 
 ```bash
 npm test             # 319 unit tests (Vitest)
-npm run e2e          # 37 end-to-end tests (Playwright)
+npm run e2e          # 51 end-to-end tests (Playwright)
 npm run lint
 npm run typecheck
 ```

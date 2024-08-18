@@ -3,7 +3,7 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Plus, Trash2, Upload, Workflow } from "lucide-react";
+import { Plus, Trash2, Upload } from "lucide-react";
 import { copyFlow, createFlow } from "@/flow/document";
 import { parseFlow, type FlowDocument } from "@/flow/schema";
 import {
@@ -14,11 +14,15 @@ import {
   useListTemplatesQuery,
   useSaveFlowMutation,
 } from "@/store/api";
+import { Wordmark } from "../Logo";
 import { ThemeToggle } from "../ThemeToggle";
 import { useToast } from "../toast";
 import { Button, IconButton } from "../ui";
+import { Stage } from "./Stage";
 
 const WHEN = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
+
+const PAGE = "w-full max-w-[1440px] min-w-0 px-[var(--page-x)]";
 
 export function Home() {
   const router = useRouter();
@@ -27,6 +31,7 @@ export function Home() {
   const [saveFlow] = useSaveFlowMutation();
   const [deleteFlow] = useDeleteFlowMutation();
   const [fetchFlow] = useLazyGetFlowQuery();
+  const [fetchTemplate] = useLazyGetTemplateQuery();
   const [busy, setBusy] = useState(false);
 
   /** Save a new flow and open it in the editor. */
@@ -40,12 +45,32 @@ export function Home() {
     }
   };
 
+  /** Save a copy of a ready-made flow and open it in the editor. */
+  const startFromTemplate = async (id: string) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const template = await fetchTemplate(id, true).unwrap();
+      // Check what came over the wire like any other flow from outside.
+      const parsed = parseFlow(template.flow);
+      if (!parsed.ok) throw new Error(parsed.error);
+      await open(copyFlow(parsed.flow, template.name));
+    } catch {
+      showToast("That template could not be loaded. Check your connection and try again.", { tone: "bad" });
+      setBusy(false);
+    }
+  };
+
   const createBlank = () => {
+    if (busy) return;
     setBusy(true);
     void open(createFlow("Untitled flow"));
   };
 
   const fileInput = useRef<HTMLInputElement>(null);
+  const chooseFile = () => {
+    if (!busy) fileInput.current?.click();
+  };
 
   /** Open a flow exported earlier. It is checked like anything else from outside. */
   const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -80,78 +105,83 @@ export function Home() {
     showToast(`Deleted “${flow.name}”.`, copy ? { action: { label: "Undo", run: () => void saveFlow(copy) } } : {});
   };
 
+  const actions = (
+    <>
+      <Button className="lg:h-9" size="lg" onClick={createBlank} disabled={busy}>
+        <Plus size={15} aria-hidden /> New flow
+      </Button>
+      <Button className="lg:h-9" size="lg" onClick={chooseFile} disabled={busy}>
+        <Upload size={14} aria-hidden /> Import a file
+      </Button>
+    </>
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-5 py-6">
-      <header className="flex items-center gap-2.5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-accent-fg">
-          <Workflow size={18} />
-        </span>
-        <span className="text-lg font-semibold tracking-tight">Flowboard</span>
-        <div className="ml-auto">
-          <ThemeToggle />
+    <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col">
+      <header className="border-b border-rule">
+        <div className={`${PAGE} flex h-14 items-center`}>
+          <Wordmark />
+          <div className="ml-auto flex items-center gap-2">
+            {/* The two ways to start from nothing sit here on a wide screen, and under the lists on a phone. */}
+            <div className="hidden items-center gap-2 lg:flex">{actions}</div>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
+      {/* One file picker, whichever of the two buttons opens it. */}
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".json,application/json"
+        className="sr-only"
+        tabIndex={-1}
+        aria-label="Choose a flow file to import"
+        onChange={(event) => void importFile(event)}
+      />
 
-      <main className="mt-10 space-y-12">
-        <section aria-labelledby="hero-title">
-          <h1 id="hero-title" className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
-            Build a workflow by connecting blocks, then watch it run.
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1">
+        <section aria-labelledby="hero-title" className={`${PAGE} pt-10`}>
+          <h1
+            id="hero-title"
+            className="text-[32px] font-extrabold leading-[1.02] tracking-[-0.025em] lg:text-[44px]"
+          >
+            <span className="block">Connect blocks.</span> <span className="block">Press Run.</span>
           </h1>
-          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
-            Call an API, check the answer, shape the data, hand it to a language model. Press Run and every step shows what
-            it received and what it returned.
+          <p className="mt-3 max-w-[62ch] text-base leading-normal text-ink-2">
+            Every step shows what it received and what it returned.
           </p>
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <Button variant="primary" className="h-9 px-4 text-sm" onClick={createBlank} disabled={busy}>
-              <Plus size={16} /> New flow
-            </Button>
-            <Button className="h-9 px-4 text-sm" onClick={() => fileInput.current?.click()} disabled={busy}>
-              <Upload size={15} /> Import a file
-            </Button>
-            <input
-              ref={fileInput}
-              type="file"
-              accept=".json,application/json"
-              className="sr-only"
-              tabIndex={-1}
-              aria-label="Choose a flow file to import"
-              onChange={(event) => void importFile(event)}
-            />
-          </div>
         </section>
 
-        <TemplateGallery busy={busy} onStart={() => setBusy(true)} onFail={() => setBusy(false)} onReady={open} />
+        <Stage onEdit={() => void startFromTemplate("heat-check")} busy={busy} />
 
-        <section aria-labelledby="flows-title">
-          <h2 id="flows-title" className="text-lg font-semibold tracking-tight">
+        <TemplateList busy={busy} onStart={(id) => void startFromTemplate(id)} />
+
+        <section aria-labelledby="flows-title" className={`${PAGE} pt-14`}>
+          <h2 id="flows-title" className="text-xl font-bold tracking-tight">
             Your flows
           </h2>
-          <p className="mt-1 text-sm text-muted">Saved in this browser. Nothing is sent to a server.</p>
+          <p className="mt-1 text-[13px] text-ink-2">Saved in this browser. Flows are not uploaded.</p>
 
           <div className="mt-4">
             {isLoading || (!flows && !error) ? (
-              <p className="text-sm text-muted" aria-busy="true">
+              <p className="text-[13px] text-ink-2" aria-busy="true">
                 Loading your flows…
               </p>
             ) : error ? (
-              <p className="text-sm text-bad">Your flows could not be read from this browser&apos;s storage.</p>
+              <p className="text-[13px] font-medium text-fail">Your flows could not be read from this browser&apos;s storage.</p>
             ) : flows && flows.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-line-strong px-6 py-8 text-center">
-                <p className="font-medium">No flows yet</p>
-                <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
-                  Start from a template above, or create an empty flow and add blocks yourself.
-                </p>
-              </div>
+              <p className="max-w-[62ch] text-[15px] leading-normal text-ink-2">
+                No flows yet. Start from a template above, or choose New flow.
+              </p>
             ) : (
-              <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+              <ul className="border-t border-rule">
                 {flows?.map((flow) => (
-                  <li key={flow.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2">
-                    <Link href={`/flows/${flow.id}`} className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">{flow.name}</span>
-                      <span className="block truncate text-xs text-muted">
-                        {flow.blockCount} {flow.blockCount === 1 ? "block" : "blocks"} · edited{" "}
-                        {WHEN.format(new Date(flow.updatedAt))}
-                        {flow.description ? ` · ${flow.description}` : ""}
+                  <li key={flow.id} className="flex items-center gap-3 border-b border-rule">
+                    <Link href={`/flows/${flow.id}`} className="group min-h-14 min-w-0 flex-1 py-2.5">
+                      <span className="block truncate text-[15px] font-bold underline-offset-4 group-hover:underline">{flow.name}</span>
+                      <span className="block truncate text-[13px] text-ink-2">
+                        {flow.blockCount} {flow.blockCount === 1 ? "block" : "blocks"}, edited {WHEN.format(new Date(flow.updatedAt))}
+                        {flow.description ? `, ${flow.description}` : ""}
                       </span>
                     </Link>
                     <IconButton label={`Delete ${flow.name}`} onClick={() => void remove(flow)}>
@@ -162,90 +192,63 @@ export function Home() {
               </ul>
             )}
           </div>
+
+          <div className="mt-6 flex flex-wrap gap-2 lg:hidden">{actions}</div>
         </section>
       </main>
 
-      <footer className="mt-12 border-t border-line pt-4 text-xs text-faint">
-        Built with Next.js, React and Redux Toolkit.{" "}
-        <a className="underline hover:text-fg" href="https://github.com/f20230125-sudo/flowboard">
-          Source on GitHub
-        </a>
+      <footer className="mt-14 border-t border-rule">
+        <p className={`${PAGE} py-3 text-[13px] text-ink-3`}>
+          Built with Next.js, React and Redux Toolkit.{" "}
+          <a
+            className="inline-flex min-h-8 items-center font-medium text-ink-2 underline hover:text-ink"
+            href="https://github.com/f20230125-sudo/flowboard"
+          >
+            Source on GitHub
+          </a>
+        </p>
       </footer>
     </div>
   );
 }
 
-type GalleryProps = {
-  busy: boolean;
-  onStart: () => void;
-  onFail: () => void;
-  onReady: (flow: FlowDocument) => Promise<void>;
-};
-
-/** The ready-made flows, read from this app's own REST API. */
-function TemplateGallery({ busy, onStart, onFail, onReady }: GalleryProps) {
-  const { showToast } = useToast();
+/** The ready-made flows, read from this app's own REST API, as ruled rows. */
+function TemplateList({ busy, onStart }: { busy: boolean; onStart: (id: string) => void }) {
   const { data: templates, isLoading, error, refetch } = useListTemplatesQuery();
-  const [fetchTemplate] = useLazyGetTemplateQuery();
-
-  const use = async (id: string) => {
-    onStart();
-    try {
-      const template = await fetchTemplate(id, true).unwrap();
-      // Check what came over the wire like any other flow from outside.
-      const parsed = parseFlow(template.flow);
-      if (!parsed.ok) throw new Error(parsed.error);
-      await onReady(copyFlow(parsed.flow, template.name));
-    } catch {
-      showToast("That template could not be loaded. Check your connection and try again.", { tone: "bad" });
-      onFail();
-    }
-  };
 
   return (
-    <section aria-labelledby="templates-title">
-      <h2 id="templates-title" className="text-lg font-semibold tracking-tight">
+    <section aria-labelledby="templates-title" className={`${PAGE} pt-14`}>
+      <h2 id="templates-title" className="text-xl font-bold tracking-tight">
         Start from a template
       </h2>
-      <p className="mt-1 text-sm text-muted">Each one runs as it is. No key, no account.</p>
+      <p className="mt-1 text-[13px] text-ink-2">Each one runs as it is. No key, no account.</p>
 
       <div className="mt-4">
         {isLoading ? (
-          <ul className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="Loading templates">
-            {[0, 1, 2, 3].map((slot) => (
-              <li key={slot} className="h-[132px] animate-pulse rounded-xl border border-line bg-surface" />
-            ))}
-          </ul>
+          <p className="text-[13px] text-ink-2" aria-busy="true">
+            Loading templates…
+          </p>
         ) : error || !templates ? (
-          <div className="rounded-xl border border-line bg-surface p-4 text-sm">
-            <p className="text-bad">The templates could not be loaded.</p>
+          <div>
+            <p className="text-[13px] font-medium text-fail">The templates could not be loaded.</p>
             <Button size="sm" className="mt-2" onClick={() => void refetch()}>
               Try again
             </Button>
           </div>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="border-t border-rule">
             {templates.map((template) => (
-              <li key={template.id}>
+              <li key={template.id} className="border-b border-rule">
                 <button
                   type="button"
-                  disabled={busy}
-                  onClick={() => void use(template.id)}
-                  className="group flex h-full w-full flex-col rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:border-accent disabled:cursor-wait disabled:opacity-60"
+                  aria-disabled={busy || undefined}
+                  onClick={() => onStart(template.id)}
+                  className="group grid min-h-[60px] w-full gap-x-6 gap-y-1 py-3 text-left aria-disabled:cursor-wait aria-disabled:opacity-60 lg:grid-cols-[15rem_minmax(0,1fr)_16rem_5rem] lg:items-center"
                 >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="text-[15px] font-semibold">{template.name}</span>
-                    <ArrowRight size={16} className="text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
-                  </span>
-                  <span className="mt-1 text-sm leading-relaxed text-muted">{template.description}</span>
-                  <span className="mt-3 flex flex-wrap items-center gap-1.5 pt-1">
-                    {template.tags.map((tag) => (
-                      <span key={tag} className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
-                        {tag}
-                      </span>
-                    ))}
-                    <span className="ml-auto text-[11px] text-faint">{template.blockCount} blocks</span>
-                  </span>
+                  <span className="text-[17px] font-bold underline-offset-4 group-hover:underline lg:text-[15px]">{template.name}</span>
+                  <span className="text-[13.5px] leading-snug text-ink-2">{template.description}</span>
+                  <span className="text-[12.5px] text-ink-2">Uses {template.tags.join(", ")}</span>
+                  <span className="font-mono text-[12.5px] text-ink-2 lg:text-right">{template.blockCount} blocks</span>
                 </button>
               </li>
             ))}

@@ -25,11 +25,11 @@ function overlay() {
   layer.style.cssText = "position:fixed;inset:0;z-index:2147483647;pointer-events:none;font-family:ui-sans-serif,system-ui,sans-serif";
   layer.innerHTML = `
     <div id="demo-caption" style="position:absolute;left:50%;top:60px;transform:translateX(-50%);padding:8px 16px;
-      border-radius:12px;background:rgba(12,14,19,.95);border:1px solid #454d5c;color:#f3f5f8;font-size:16px;
-      font-weight:500;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.5);display:none"></div>
+      border-radius:7px;background:rgba(15,26,28,.96);border:1px solid #728081;color:#e8f0f0;font-size:16px;
+      font-weight:600;white-space:nowrap;box-shadow:0 8px 24px rgba(15,26,28,.3);display:none"></div>
     <div id="demo-pointer" style="position:absolute;left:0;top:0;width:24px;height:24px;margin:-2px 0 0 -4px">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><path d="M5 3 L5 24 L11 18.5 L15 27 L19 25 L15 16.8 L23 16.8 Z"
-        fill="#fff" stroke="#0b0d10" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        fill="#fff" stroke="#0f1a1c" stroke-width="1.8" stroke-linejoin="round"/></svg>
     </div>`;
   document.body.appendChild(layer);
   const pointer = document.getElementById("demo-pointer");
@@ -46,7 +46,7 @@ function overlay() {
 // --- The tour ---------------------------------------------------------------------
 
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: VIEW, colorScheme: "dark", deviceScaleFactor: 1 });
+const context = await browser.newContext({ viewport: VIEW, colorScheme: "light", deviceScaleFactor: 1 });
 await context.route("https://api.open-meteo.com/**", async (route) => {
   await new Promise((done) => setTimeout(done, 1100));
   await route.fulfill({

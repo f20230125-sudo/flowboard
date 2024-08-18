@@ -135,7 +135,7 @@ export const pasteBlocks =
     if (!parsed.success || parsed.data.nodes.length === 0) return false;
 
     const { nodes } = getState().flow.present;
-    const copy = cloneSelection(parsed.data.nodes, parsed.data.edges, nodes.map((node) => node.name), { x: 40, y: 40 });
+    const copy = cloneSelection(parsed.data.nodes, parsed.data.edges, nodes.map((node) => node.name), { x: 40, y: 100 });
     dispatch(flowActions.blocksInserted({ ...copy, label: "Paste" }));
     return true;
   };
@@ -145,6 +145,6 @@ export const duplicateSelection = (): AppThunk => (dispatch, getState) => {
   const selected = new Set(view.selectedNodeIds);
   const picked = present.nodes.filter((node) => selected.has(node.id));
   if (picked.length === 0) return;
-  const copy = cloneSelection(picked, present.edges, present.nodes.map((node) => node.name), { x: 40, y: 40 });
+  const copy = cloneSelection(picked, present.edges, present.nodes.map((node) => node.name), { x: 40, y: 100 });
   dispatch(flowActions.blocksInserted({ ...copy, label: "Duplicate" }));
 };

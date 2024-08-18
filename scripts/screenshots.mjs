@@ -11,7 +11,7 @@ import { chromium } from "@playwright/test";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3020";
 const OUT = process.env.OUT_DIR ?? "docs/screenshots";
-const THEME = process.env.THEME === "light" ? "light" : "dark";
+const THEME = process.env.THEME === "dark" ? "dark" : "light";
 
 const json = (body, status = 200) => ({
   status,
@@ -39,9 +39,12 @@ const shot = async (name) => {
   console.log(`saved ${OUT}/${name}.png`);
 };
 
-// Home
+// Home: the first screen is Heat check on a stage. Press Run on it.
 await page.goto(BASE);
 await page.getByRole("button", { name: /Heat check/ }).waitFor();
+await page.locator(".react-flow__node").nth(5).waitFor();
+await page.getByRole("button", { name: "Run", exact: true }).click();
+await page.getByText(/Run succeeded/).waitFor();
 await shot("home");
 
 // Editor, opened from a template
