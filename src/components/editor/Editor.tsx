@@ -7,6 +7,8 @@ import { openFlow, saveNow } from "@/store/editorThunks";
 import { flowActions } from "@/store/flowSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectFlowId, selectFlowStatus } from "@/store/selectors";
+import { SettingsDialog } from "../SettingsDialog";
+import { BottomPanel } from "./BottomPanel";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
 import { Palette } from "./Palette";
@@ -71,11 +73,15 @@ function Workspace() {
       <TopBar />
       <div className="flex min-h-0 flex-1">
         <Palette />
-        <main className="relative min-w-0 flex-1">
-          <Canvas />
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="relative min-h-0 flex-1">
+            <Canvas />
+          </div>
+          <BottomPanel />
         </main>
         <Inspector />
       </div>
+      <SettingsDialog />
     </div>
   );
 }

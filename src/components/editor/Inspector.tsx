@@ -7,11 +7,14 @@ import type { FlowNode } from "@/flow/schema";
 import type { Problem } from "@/flow/validate";
 import { duplicateSelection, renameBlock } from "@/store/editorThunks";
 import { flowActions } from "@/store/flowSlice";
+import { settingsActions } from "@/store/settingsSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   selectEdges,
   selectFlowDescription,
+  selectAiConfig,
   selectFlowName,
+  selectHasModel,
   selectNodes,
   selectProblemsByNode,
   selectSelectedEdgeIds,
@@ -30,7 +33,7 @@ export function Inspector() {
   const selectedEdges = useAppSelector(selectSelectedEdgeIds);
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-line bg-surface" aria-label="Settings">
+    <aside className="flex w-[19rem] shrink-0 flex-col border-l border-line bg-surface" aria-label="Settings">
       {selected.length === 1 ? (
         // Keyed by block, so drafts in the form never carry over to another block.
         <BlockSettings key={selected[0].id} node={selected[0]} />
@@ -89,6 +92,7 @@ function BlockSettings({ node }: { node: FlowNode }) {
 
       <div className="flex-1 space-y-4 overflow-y-auto p-3">
         <ProblemList problems={problems} />
+        {node.type === "ai" && <ModelNote />}
         {/* Keyed by name, so the draft resets when a rename is undone. */}
         <NameField key={node.name} node={node} />
         {spec.fields.map((field) =>
@@ -112,6 +116,30 @@ function BlockSettings({ node }: { node: FlowNode }) {
         </Button>
       </footer>
     </>
+  );
+}
+
+function ModelNote() {
+  const dispatch = useAppDispatch();
+  const hasModel = useAppSelector(selectHasModel);
+  const model = useAppSelector(selectAiConfig).model;
+  return (
+    <p className="rounded-lg border border-line bg-bg px-2.5 py-2 text-xs leading-relaxed text-muted">
+      {hasModel ? (
+        <>
+          Calls <span className="font-mono text-fg">{model}</span> with your key.{" "}
+        </>
+      ) : (
+        <>No model is set, so this step returns its sample reply. </>
+      )}
+      <button
+        type="button"
+        className="font-medium text-accent underline"
+        onClick={() => dispatch(settingsActions.settingsOpened())}
+      >
+        {hasModel ? "Change" : "Choose a model"}
+      </button>
+    </p>
   );
 }
 
