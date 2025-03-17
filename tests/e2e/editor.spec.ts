@@ -239,3 +239,37 @@ test.describe("the app around the editor", () => {
     await expect(page.getByRole("heading", { name: "This flow is not in this browser" })).toBeVisible();
   });
 });
+
+test.describe("help and small screens", () => {
+  test("the list of shortcuts opens with ? and from the menu", async ({ page }) => {
+    await openBlankFlow(page);
+    await page.locator(".react-flow__pane").click({ position: { x: 20, y: 20 } });
+    await page.keyboard.press("?");
+    const dialog = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+    await expect(dialog).toContainText("Run the flow");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
+    await page.getByRole("button", { name: "More actions" }).click();
+    await page.getByRole("menuitem", { name: "Keyboard shortcuts" }).click();
+    await expect(dialog).toBeVisible();
+  });
+
+  test("on a phone the flow can be run but not edited", async ({ page, context }) => {
+    await mockApis(context);
+    await page.setViewportSize({ width: 390, height: 780 });
+    await openTemplate(page, /Heat check/, "getWeather");
+
+    await expect(page.getByText("To edit it, open Flowboard on a wider screen.")).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Blocks" })).toBeHidden();
+    await expect(page.getByRole("complementary", { name: "Settings" })).toBeHidden();
+
+    await page.getByRole("button", { name: "Run", exact: true }).click();
+    await expect(page.getByRole("tab", { name: /Run succeeded/ })).toBeVisible();
+    await expect(page.getByRole("tabpanel")).toContainText("Too hot. Stay inside until the evening.");
+
+    // Nothing spills past the edge of the screen.
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});

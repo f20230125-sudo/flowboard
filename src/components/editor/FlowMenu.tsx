@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Ellipsis, Link as LinkIcon, Settings } from "lucide-react";
+import { Download, Ellipsis, Keyboard, Link as LinkIcon, Settings } from "lucide-react";
 import { useAppDispatch, useAppStore } from "@/store/hooks";
 import { toDocument } from "@/store/selectors";
 import { settingsActions } from "@/store/settingsSlice";
+import { uiActions } from "@/store/uiSlice";
 import { exportFileName, shareUrl } from "@/storage/shareLink";
 import { useToast } from "../toast";
 import { IconButton } from "../ui";
 
-/** The "more" menu in the top bar: export, share, settings. */
+/** The "more" menu in the top bar: export, share, settings, shortcuts. */
 export function FlowMenu() {
   const dispatch = useAppDispatch();
   const store = useAppStore();
@@ -43,6 +44,7 @@ export function FlowMenu() {
     { label: "Export as a file", icon: Download, run: exportFile },
     { label: "Copy a share link", icon: LinkIcon, run: () => void copyLink() },
     { label: "Language model settings", icon: Settings, run: () => dispatch(settingsActions.settingsOpened()) },
+    { label: "Keyboard shortcuts", icon: Keyboard, run: () => dispatch(uiActions.shortcutsToggled(true)) },
   ];
 
   return (
