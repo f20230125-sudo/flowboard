@@ -46,7 +46,7 @@ export function TopBar({ children }: { children?: React.ReactNode }) {
 
       <div className="ml-auto flex items-center gap-1">
         <IconButton
-          className="hidden lg:inline-flex"
+          className="max-lg:hidden!"
           label={canUndo ? `Undo: ${undoLabel} (Ctrl+Z)` : "Nothing to undo"}
           disabled={!canUndo}
           onClick={() => dispatch(flowActions.undo())}
@@ -54,7 +54,7 @@ export function TopBar({ children }: { children?: React.ReactNode }) {
           <Undo2 size={16} />
         </IconButton>
         <IconButton
-          className="hidden lg:inline-flex"
+          className="max-lg:hidden!"
           label={canRedo ? `Redo: ${redoLabel} (Ctrl+Y)` : "Nothing to redo"}
           disabled={!canRedo}
           onClick={() => dispatch(flowActions.redo())}

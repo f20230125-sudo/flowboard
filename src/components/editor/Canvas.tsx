@@ -131,6 +131,8 @@ export function Canvas() {
         nodeStrokeWidth={0}
         nodeBorderRadius={6}
         style={miniMapStyle}
+        // On a narrow screen there is no room for it beside the flow.
+        className="max-lg:hidden!"
         ariaLabel="Overview of the flow"
       />
     </ReactFlow>
