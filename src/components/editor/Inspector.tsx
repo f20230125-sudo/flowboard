@@ -17,12 +17,14 @@ import {
   selectHasModel,
   selectNodes,
   selectProblemsByNode,
+  selectReferenceSources,
   selectSelectedEdgeIds,
   selectSelectedNodes,
 } from "@/store/selectors";
 import { Button, Kbd } from "../ui";
 import { BlockIcon } from "./blockLook";
 import { Field } from "./fields";
+import { ReferenceSources } from "./ReferencePicker";
 
 const INPUT =
   "w-full rounded-lg border border-line bg-bg px-2.5 text-[13px] text-fg placeholder:text-faint transition-colors hover:border-line-strong";
@@ -78,6 +80,7 @@ function BlockSettings({ node }: { node: FlowNode }) {
   const dispatch = useAppDispatch();
   const spec = CATALOG[node.type];
   const problems = useAppSelector(selectProblemsByNode).get(node.id) ?? [];
+  const sources = useAppSelector((state) => selectReferenceSources(state, node.id));
   const config = node.config as Record<string, unknown>;
 
   return (
@@ -95,16 +98,18 @@ function BlockSettings({ node }: { node: FlowNode }) {
         {node.type === "ai" && <ModelNote />}
         {/* Keyed by name, so the draft resets when a rename is undone. */}
         <NameField key={node.name} node={node} />
-        {spec.fields.map((field) =>
-          field.showWhen && !field.showWhen(config) ? null : (
-            <Field
-              key={field.key}
-              spec={field}
-              value={config[field.key]}
-              onChange={(value) => dispatch(flowActions.settingChanged({ nodeId: node.id, key: field.key, value }))}
-            />
-          ),
-        )}
+        <ReferenceSources value={sources}>
+          {spec.fields.map((field) =>
+            field.showWhen && !field.showWhen(config) ? null : (
+              <Field
+                key={field.key}
+                spec={field}
+                value={config[field.key]}
+                onChange={(value) => dispatch(flowActions.settingChanged({ nodeId: node.id, key: field.key, value }))}
+              />
+            ),
+          )}
+        </ReferenceSources>
       </div>
 
       <footer className="flex items-center gap-2 border-t border-line p-3">

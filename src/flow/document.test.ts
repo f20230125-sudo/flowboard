@@ -25,6 +25,23 @@ describe("parseFlow", () => {
     expect(result.flow.nodes[1].config).toMatchObject({ method: "GET", failOnError: true, via: "browser", timeoutMs: 10000 });
   });
 
+  it("opens a flow saved before a setting existed, with that setting switched off", () => {
+    const saved = {
+      version: 1,
+      id: "old",
+      name: "Saved last week",
+      updatedAt: "2026-09-28T00:00:00.000Z",
+      nodes: [
+        { id: "a", type: "trigger", name: "start", position: { x: 0, y: 0 }, config: {} },
+        // No "retries": the HTTP block had no extra tries then.
+        { id: "b", type: "http", name: "call", position: { x: 280, y: 0 }, config: { url: "https://api.example.com", timeoutMs: 5000 } },
+      ],
+      edges: [{ id: "e", source: "a", target: "b" }],
+    };
+    const parsed = parseFlow(saved);
+    expect(parsed.ok && parsed.flow.nodes[1].config).toMatchObject({ url: "https://api.example.com", timeoutMs: 5000, retries: 0 });
+  });
+
   it("accepts what the app itself writes", () => {
     const doc = flow([block("trigger", "start"), block("output", "result")], ["start>result"]);
     expect(parseFlow(JSON.parse(JSON.stringify(doc)))).toEqual({ ok: true, flow: doc });
