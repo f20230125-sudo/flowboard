@@ -167,6 +167,24 @@ test.describe("running a flow", () => {
       messages: [{ role: "system" }, { role: "user", content: "Our checkout page has been down for an hour and customers cannot pay." }],
     });
 
+    // A temperature is only sent when the block sets one. Emptying the field
+    // hands the choice back to the model.
+    const chats = () => seen.filter((call) => call.url.endsWith("/chat/completions")).map((call) => JSON.parse(call.body!));
+    expect(chats()[0]).not.toHaveProperty("temperature");
+    await block(page, "classify").click();
+    const temperature = page.getByLabel("Temperature");
+    await expect(temperature).toHaveValue("");
+    await temperature.fill("0.7");
+    await temperature.blur();
+    await runButton(page).click();
+    await expect.poll(() => chats().length).toBe(2);
+    expect(chats()[1]).toMatchObject({ temperature: 0.7 });
+    await temperature.fill("");
+    await temperature.blur();
+    await runButton(page).click();
+    await expect.poll(() => chats().length).toBe(3);
+    expect(chats()[2]).not.toHaveProperty("temperature");
+
     // The key is remembered in this browser across a reload.
     await page.reload();
     await block(page, "classify").click();
