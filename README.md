@@ -166,8 +166,8 @@ Settings for your own copy:
 ## Tests
 
 ```bash
-npm test             # 302 unit tests (Vitest)
-npm run e2e          # 33 end-to-end tests (Playwright)
+npm test             # 319 unit tests (Vitest)
+npm run e2e          # 37 end-to-end tests (Playwright)
 npm run lint
 npm run typecheck
 ```
