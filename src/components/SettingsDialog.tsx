@@ -10,7 +10,7 @@ import { useToast } from "./toast";
 import { Button, IconButton } from "./ui";
 
 const INPUT =
-  "h-9 w-full rounded-lg border border-line bg-bg px-2.5 text-[13px] text-fg placeholder:text-faint transition-colors hover:border-line-strong";
+  "h-9 w-full rounded-control border border-edge bg-sheet px-2.5 text-[13px] text-ink placeholder:text-ink-3 transition-colors hover:border-ink-2";
 
 /** Where the visitor chooses which model the AI step uses. */
 export function SettingsDialog() {
@@ -67,7 +67,7 @@ function SettingsForm() {
         if (event.target === dialog.current) dialog.current?.close();
       }}
       aria-labelledby={`${ids.provider}-title`}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-line bg-surface p-0 text-fg shadow-panel backdrop:bg-black/50"
+      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-block border border-rule bg-sheet p-0 text-ink shadow-overlay backdrop:bg-black/50"
     >
       <form
         method="dialog"
@@ -76,12 +76,12 @@ function SettingsForm() {
           if (complete) save();
         }}
       >
-        <header className="flex items-start gap-3 border-b border-line p-4">
+        <header className="flex items-start gap-3 border-b border-rule p-4">
           <div className="min-w-0 flex-1">
-            <h2 id={`${ids.provider}-title`} className="text-base font-semibold">
+            <h2 id={`${ids.provider}-title`} className="text-base font-bold">
               Language model
             </h2>
-            <p className="mt-1 text-xs leading-relaxed text-muted">
+            <p className="mt-1 text-[13px] leading-relaxed text-ink-2">
               AI steps call the model you choose here with your own key. The key is kept in this browser and sent straight
               to the provider, never to Flowboard. With no model, AI steps return their sample reply.
             </p>
@@ -93,7 +93,7 @@ function SettingsForm() {
 
         <div className="space-y-4 p-4">
           <div>
-            <label htmlFor={ids.provider} className="mb-1 block text-xs font-medium text-muted">
+            <label htmlFor={ids.provider} className="mb-1 block text-[12.5px] font-semibold text-ink-2">
               Provider
             </label>
             <select
@@ -113,10 +113,10 @@ function SettingsForm() {
               ))}
             </select>
             {preset && (
-              <p className="mt-1 text-[11px] leading-relaxed text-faint">
+              <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
                 {preset.note}{" "}
                 {preset.keyPage && (
-                  <a href={preset.keyPage} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-accent underline">
+                  <a href={preset.keyPage} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-semibold text-ink underline">
                     Get a key <ExternalLink size={10} />
                   </a>
                 )}
@@ -128,7 +128,7 @@ function SettingsForm() {
             <>
               {custom && (
                 <div>
-                  <label htmlFor={ids.address} className="mb-1 block text-xs font-medium text-muted">
+                  <label htmlFor={ids.address} className="mb-1 block text-[12.5px] font-semibold text-ink-2">
                     Address
                   </label>
                   <input
@@ -144,7 +144,7 @@ function SettingsForm() {
               )}
 
               <div>
-                <label htmlFor={ids.key} className="mb-1 block text-xs font-medium text-muted">
+                <label htmlFor={ids.key} className="mb-1 block text-[12.5px] font-semibold text-ink-2">
                   API key{custom && " (leave empty if the service needs none)"}
                 </label>
                 <div className="flex gap-1.5">
@@ -164,7 +164,7 @@ function SettingsForm() {
               </div>
 
               <div>
-                <label htmlFor={ids.model} className="mb-1 block text-xs font-medium text-muted">
+                <label htmlFor={ids.model} className="mb-1 block text-[12.5px] font-semibold text-ink-2">
                   Model
                 </label>
                 <div className="flex gap-1.5">
@@ -187,26 +187,26 @@ function SettingsForm() {
                   {check && check !== "checking" && check.ok && check.models.map((model) => <option key={model} value={model} />)}
                 </datalist>
 
-                <p className="mt-1.5 min-h-4 text-[11px] leading-relaxed" role="status">
+                <p className="mt-1.5 min-h-4 text-[12px] leading-relaxed" role="status">
                   {check && check !== "checking" && check.ok && (
-                    <span className="flex items-start gap-1.5 text-ok">
+                    <span className="flex items-start gap-1.5 text-ink">
                       <Check size={12} strokeWidth={3} className="mt-0.5 shrink-0" />
                       <span>
                         The key works. It can use {check.models.length} {check.models.length === 1 ? "model" : "models"}; start
                         typing in the Model field to pick one.
                         {draft.model.trim() !== "" && !check.models.includes(draft.model.trim()) && (
-                          <span className="text-warn"> “{draft.model.trim()}” is not in that list.</span>
+                          <span className="font-semibold"> “{draft.model.trim()}” is not in that list.</span>
                         )}
                       </span>
                     </span>
                   )}
                   {check && check !== "checking" && !check.ok && (
-                    <span className="flex items-start gap-1.5 text-bad">
+                    <span className="flex items-start gap-1.5 text-fail">
                       <CircleAlert size={12} className="mt-0.5 shrink-0" /> {check.message}
                     </span>
                   )}
                   {!check && (
-                    <span className="text-faint">
+                    <span className="text-ink-3">
                       Model names change often. “Check key” asks the provider which ones your key can use, at no cost.
                     </span>
                   )}
@@ -216,7 +216,7 @@ function SettingsForm() {
           )}
         </div>
 
-        <footer className="flex items-center justify-end gap-2 border-t border-line p-4">
+        <footer className="flex items-center justify-end gap-2 border-t border-rule p-4">
           <Button onClick={() => dialog.current?.close()}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={!complete}>
             Save
