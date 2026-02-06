@@ -1,0 +1,121 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, Check, CloudOff, LoaderCircle, Redo2, Undo2 } from "lucide-react";
+import { flowActions } from "@/store/flowSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  selectCanRedo,
+  selectCanUndo,
+  selectFlowName,
+  selectRedoLabel,
+  selectSaveError,
+  selectSaveStatus,
+  selectUndoLabel,
+} from "@/store/selectors";
+import { ThemeToggle } from "../ThemeToggle";
+import { IconButton } from "../ui";
+
+export function TopBar({ children }: { children?: React.ReactNode }) {
+  const dispatch = useAppDispatch();
+  const name = useAppSelector(selectFlowName);
+  const canUndo = useAppSelector(selectCanUndo);
+  const canRedo = useAppSelector(selectCanRedo);
+  const undoLabel = useAppSelector(selectUndoLabel);
+  const redoLabel = useAppSelector(selectRedoLabel);
+
+  return (
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-surface px-2">
+      <Link
+        href="/"
+        aria-label="Back to all flows"
+        title="All flows"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+      >
+        <ArrowLeft size={16} />
+      </Link>
+
+      {/* Keyed by name, so the draft follows an undo of a rename. */}
+      <FlowName key={name} name={name} />
+      <SaveStatus />
+
+      <div className="ml-auto flex items-center gap-1">
+        <IconButton
+          label={canUndo ? `Undo: ${undoLabel} (Ctrl+Z)` : "Nothing to undo"}
+          disabled={!canUndo}
+          onClick={() => dispatch(flowActions.undo())}
+        >
+          <Undo2 size={16} />
+        </IconButton>
+        <IconButton
+          label={canRedo ? `Redo: ${redoLabel} (Ctrl+Y)` : "Nothing to redo"}
+          disabled={!canRedo}
+          onClick={() => dispatch(flowActions.redo())}
+        >
+          <Redo2 size={16} />
+        </IconButton>
+        <span className="mx-1 h-5 w-px bg-line" aria-hidden />
+        <ThemeToggle />
+        {children}
+      </div>
+    </header>
+  );
+}
+
+function FlowName({ name }: { name: string }) {
+  const dispatch = useAppDispatch();
+  const [draft, setDraft] = useState(name);
+
+  const commit = () => {
+    const trimmed = draft.trim().slice(0, 80);
+    if (trimmed === "") setDraft(name);
+    else if (trimmed !== name) dispatch(flowActions.flowRenamed(trimmed));
+    else setDraft(name);
+  };
+
+  return (
+    <input
+      type="text"
+      value={draft}
+      aria-label="Flow name"
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+        if (event.key === "Escape") {
+          setDraft(name);
+          event.currentTarget.blur();
+        }
+      }}
+      maxLength={80}
+      className="h-8 w-56 min-w-0 rounded-lg border border-transparent bg-transparent px-2 text-sm font-semibold text-fg transition-colors hover:border-line focus:border-line focus:bg-bg"
+    />
+  );
+}
+
+function SaveStatus() {
+  const status = useAppSelector(selectSaveStatus);
+  const error = useAppSelector(selectSaveError);
+
+  if (status === "failed") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-bad" role="alert" title={error ?? undefined}>
+        <CloudOff size={14} /> Not saved
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-faint" aria-live="polite">
+      {status === "saving" ? (
+        <>
+          <LoaderCircle size={13} className="animate-spin" /> Saving
+        </>
+      ) : (
+        <>
+          <Check size={13} /> Saved in this browser
+        </>
+      )}
+    </span>
+  );
+}
