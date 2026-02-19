@@ -41,7 +41,7 @@ describe("adding blocks", () => {
     const id = store.dispatch(addBlock("http"));
 
     const added = present().nodes[1];
-    expect(added).toMatchObject({ id, type: "http", name: "http1", position: { x: 300, y: 0 } });
+    expect(added).toMatchObject({ id, type: "http", name: "http1", position: { x: 280, y: 0 } });
     expect(links()).toEqual([`start:out>${id}`]);
     expect(store.getState().flow.view.selectedNodeIds).toEqual([id]);
   });

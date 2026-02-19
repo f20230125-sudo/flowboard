@@ -140,8 +140,10 @@ body {
   height: 12px;
   border: 2px solid var(--line-strong);
   background: var(--surface);
+  /* "scale", not "transform": the library places each dot with a transform,
+     and setting that again here would move the dot from under the pointer. */
   transition:
-    transform 120ms ease,
+    scale 120ms ease,
     border-color 120ms ease,
     background-color 120ms ease;
 }
@@ -149,7 +151,7 @@ body {
 .react-flow .react-flow__handle:hover,
 .react-flow .react-flow__handle.connectingfrom,
 .react-flow .react-flow__handle.connectingto {
-  transform: scale(1.35);
+  scale: 1.35;
   border-color: var(--accent);
 }
 
@@ -174,6 +176,33 @@ body {
 
 .react-flow .react-flow__edge.selected .react-flow__edge-path {
   stroke-width: 2.5;
+}
+
+/* --- A run in progress ------------------------------------------------------ */
+
+.fb-running {
+  animation: fb-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes fb-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+.react-flow .fb-edge-flowing {
+  stroke-dasharray: 7 5;
+  animation: fb-flow 0.5s linear infinite;
+}
+
+@keyframes fb-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

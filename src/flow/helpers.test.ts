@@ -41,20 +41,20 @@ describe("placing a new block", () => {
 
   it("goes right of the anchor, on the grid", () => {
     const anchor = { ...block("trigger", "start"), position: { x: 95, y: 43 } };
-    expect(placeNear([anchor], anchor)).toEqual({ x: 400, y: 40 });
+    expect(placeNear([anchor], anchor)).toEqual({ x: 380, y: 40 });
   });
 
   it("goes right of the rightmost block when there is no anchor", () => {
     const a = { ...block("trigger", "start"), position: { x: 0, y: 0 } };
     const b = { ...block("delay", "wait"), position: { x: 500, y: 100 } };
-    expect(placeNear([a, b], undefined)).toEqual({ x: 800, y: 100 });
+    expect(placeNear([a, b], undefined)).toEqual({ x: 780, y: 100 });
   });
 
   it("steps down until the spot is free", () => {
     const anchor = { ...block("condition", "check"), position: { x: 0, y: 0 } };
-    const first = { ...block("delay", "a"), position: { x: 300, y: 0 } };
-    const second = { ...block("delay", "b"), position: { x: 300, y: 140 } };
-    expect(placeNear([anchor, first, second], anchor)).toEqual({ x: 300, y: 280 });
+    const first = { ...block("delay", "a"), position: { x: 280, y: 0 } };
+    const second = { ...block("delay", "b"), position: { x: 280, y: 140 } };
+    expect(placeNear([anchor, first, second], anchor)).toEqual({ x: 280, y: 280 });
   });
 
   it("offers the first output that is not used yet", () => {
