@@ -108,7 +108,7 @@ const dirhamRate = template(
   "Checks today's dirham to rupee rate and says whether it has reached the rate you are waiting for.",
   ["HTTP request", "Condition", "Set fields"],
   [
-    block("trigger", "start", 0, 1, { payload: JSON.stringify({ target: 23 }, null, 2) }),
+    block("trigger", "start", 0, 1, { payload: JSON.stringify({ target: 26.5 }, null, 2) }),
     block("http", "getRates", 1, 1, { url: "https://open.er-api.com/v6/latest/AED" }),
     block("condition", "reachedTarget", 2, 1, {
       left: "{{ steps.getRates.body.rates.INR }}",

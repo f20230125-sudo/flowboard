@@ -1,0 +1,80 @@
+# Flowboard on Kubernetes: two copies of the app behind one Service.
+#
+#   docker build -t flowboard:local .
+#   kubectl apply -f deploy/k8s.yaml
+#   kubectl port-forward service/flowboard 3000:80
+#
+# The app keeps nothing on the server (flows live in each visitor's browser),
+# so any number of copies can run side by side with no shared storage.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowboard
+  labels:
+    app: flowboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flowboard
+  template:
+    metadata:
+      labels:
+        app: flowboard
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: flowboard
+          image: flowboard:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: HOSTNAME
+              value: "0.0.0.0"
+          # Ready: may receive traffic. Live: restart it if this stops answering.
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flowboard
+  labels:
+    app: flowboard
+spec:
+  type: ClusterIP
+  selector:
+    app: flowboard
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

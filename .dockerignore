@@ -1,0 +1,18 @@
+# Everything the image does not need to build. Keeps the build fast and keeps
+# local files out of it.
+node_modules
+.next
+.git
+.github
+.vercel
+coverage
+test-results
+playwright-report
+tests
+docs
+deploy
+scripts
+*.md
+.env*
+Dockerfile
+docker-compose.yml
