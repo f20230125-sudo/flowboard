@@ -1,4 +1,4 @@
-import { createSelector } from "@reduxjs/toolkit";
+import { createSelector, lruMemoize } from "@reduxjs/toolkit";
 import type { Edge, Node } from "@xyflow/react";
 import { FLOW_VERSION, type FlowDocument, type FlowEdge, type FlowNode } from "@/flow/schema";
 import { validateFlow, type Problem } from "@/flow/validate";
@@ -108,9 +108,56 @@ export const selectSelectedNode = createSelector([selectSelectedNodes], (nodes) 
   nodes.length === 1 ? nodes[0] : null,
 );
 
-export const selectProblems = createSelector([selectNodes, selectEdges], (nodes, edges): Problem[] =>
-  validateFlow({ nodes, edges }),
+/**
+ * True when two lists of blocks differ only in where the blocks sit. Moving a
+ * block cannot create or fix a problem, so the checks need not run again.
+ */
+function sameApartFromPosition(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  return a.every((node: FlowNode, index) => {
+    const other = b[index] as FlowNode;
+    return (
+      node === other ||
+      ("config" in node &&
+        "config" in other &&
+        node.id === other.id &&
+        node.type === other.type &&
+        node.name === other.name &&
+        node.config === other.config)
+    );
+  });
+}
+
+// Dragging a block changes the list of blocks sixty times a second. The
+// comparison above lets the checks, and everything drawn from them, sit still
+// while that happens.
+export const selectProblems = createSelector(
+  [selectNodes, selectEdges],
+  (nodes, edges): Problem[] => validateFlow({ nodes, edges }),
+  { memoize: lruMemoize, memoizeOptions: { equalityCheck: sameApartFromPosition } },
 );
+
+/** What a block shows about its own problems, as plain values that compare cheaply. */
+export type ProblemBadge = { errors: number; warnings: number; text: string };
+const NO_BADGE: ProblemBadge = { errors: 0, warnings: 0, text: "" };
+
+export const selectProblemBadges = createSelector([selectProblems], (problems) => {
+  const badges = new Map<string, ProblemBadge>();
+  for (const problem of problems) {
+    if (!problem.nodeId) continue;
+    const badge = badges.get(problem.nodeId) ?? { errors: 0, warnings: 0, text: "" };
+    if (problem.level === "error") badge.errors += 1;
+    else badge.warnings += 1;
+    badge.text = [badge.text, problem.message].filter(Boolean).join("\n");
+    badges.set(problem.nodeId, badge);
+  }
+  return badges;
+});
+
+/** One block's badge. The same object comes back until that block's problems change. */
+export const selectProblemBadge = (state: RootState, nodeId: string): ProblemBadge =>
+  selectProblemBadges(state).get(nodeId) ?? NO_BADGE;
 
 export const selectProblemsByNode = createSelector([selectProblems], (problems) => {
   const byNode = new Map<string, Problem[]>();
@@ -133,6 +180,7 @@ export const selectRunResults = (state: RootState) => state.run.results;
 export const selectRunMs = (state: RootState) => state.run.ms;
 export const selectOpenStepId = (state: RootState) => state.run.openStepId;
 export const selectBottomTab = (state: RootState) => state.ui.bottomTab;
+export const selectShortcutsOpen = (state: RootState) => state.ui.shortcutsOpen;
 
 export const selectErrorCount = createSelector(
   [selectProblems],

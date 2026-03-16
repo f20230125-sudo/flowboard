@@ -27,6 +27,7 @@ Nothing to install, no account, no key.
 - **An editor that forgives:** undo and redo for everything, copy and paste between flows, autosave, and renaming a block rewrites every reference to it.
 - **Checks before a run:** one trigger, no loops, required settings, references to blocks that do not exist or do not run first. Each problem is listed in plain words and marked on its block.
 - **Flows you can move:** export to a file, import it back, or copy a share link that carries the whole flow in the address.
+- **Light and dark themes**, and keyboard shortcuts for what you do often (press `?` in the editor).
 - **AI at no cost to anyone but you:** the AI step uses your own key for Gemini, Groq, OpenAI or any compatible service. Without a key it returns a sample reply, labelled as a sample.
 
 ![The run panel after a failed request, showing the error and what the server sent back](docs/screenshots/failed.png)
@@ -139,8 +140,8 @@ Settings for your own copy:
 ## Tests
 
 ```bash
-npm test             # 270 unit tests (Vitest)
-npm run e2e          # 19 end-to-end tests (Playwright)
+npm test             # 272 unit tests (Vitest)
+npm run e2e          # 27 end-to-end tests (Playwright)
 npm run lint
 npm run typecheck
 ```
@@ -150,7 +151,9 @@ No test touches the network. Unit tests hand the engine a stand-in for `fetch`; 
 - **Engine:** ordering, branches, parallel paths, the limit on blocks running at once, stop, failure, loops, and every block on its own.
 - **Editor:** undo and redo, a drag as one step, merged typing, renaming with references, copy and paste, autosave.
 - **Safety:** references that try to reach into JavaScript itself, the relay's refusals, files and links that are not flows.
-- **End to end:** build a flow by clicking and by dragging, run it, watch it fail, export and import it, open a share link in a second browser, set a key and see the model called.
+- **End to end:** build a flow by clicking and by dragging, run it, watch it fail, export and import it, open a share link in a second browser, set a key and see the model called, run a flow on a phone-sized screen.
+- **Accessibility:** an automated scan (axe) of the home page, the editor and the settings dialog, in the light and the dark theme. It checks labels, roles and colour contrast, and must find nothing.
+- **Speed:** checked by hand with a flow of 100 blocks: it opens in about a third of a second and dragging a block holds 60 frames a second, because moving a block redraws only that block.
 
 CI runs all of it on every push, then builds the Docker image, starts a container, waits for its health check, and calls its routes.
 
@@ -176,7 +179,8 @@ deploy/           the Kubernetes manifest
 - Flows are saved in one browser. Export or share a flow to move it.
 - The AI step is tested against stand-ins for the providers, not against a live model in CI, because that would need a key.
 - The Docker image is built and run in CI. The Kubernetes manifest is checked against the Kubernetes schemas there, but has not been applied to a cluster.
-- The canvas is built for a desktop screen.
+- Editing needs a screen at least 1024 pixels wide. On a phone a flow can be opened and run, but not edited.
+- The accessibility scan covers what a machine can check. Connecting two blocks still needs a pointer; the rest works from the keyboard.
 
 ## Licence
 
