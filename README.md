@@ -36,7 +36,7 @@ Nothing to install, no account, no key.
 
 ![Architecture of Flowboard. In the browser: React components, a Redux Toolkit store, the flow rules, the engine and browser storage. On the server: the templates, relay and health routes. Outside: public REST APIs and the AI provider.](docs/architecture.svg)
 
-Read it from the top. What you do on the screen becomes actions in the store, and the screen redraws from the store's state. Nothing else holds state: the canvas itself is told what to show.
+Read it from the top. What you do on the screen becomes actions in the store, and the screen redraws from the store's state. The canvas keeps no copy of the flow: it is told what to show.
 
 The numbers on the arrows are the steps of a run, listed along the bottom of the picture:
 
