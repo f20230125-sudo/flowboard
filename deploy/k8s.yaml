@@ -23,6 +23,7 @@ spec:
         app: flowboard
     spec:
       securityContext:
+        # The cluster checks this against the image, which runs as user 10001.
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
