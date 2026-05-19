@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Copy } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, CornerDownLeft } from "lucide-react";
 import type { Json } from "@/engine/reference";
 
 // Shows a piece of data as a tree that opens and closes. When it is given a
 // `path` (such as "steps.weather"), every row offers its own reference, so
-// {{ steps.weather.body.temp }} can be copied instead of typed.
+// {{ steps.weather.body.temp }} can be copied or inserted instead of typed.
 
 const PAGE = 50;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -26,15 +26,20 @@ function Scalar({ value }: { value: Exclude<Json, Json[] | { [key: string]: Json
   return <span className="text-accent">{String(value)}</span>;
 }
 
+/** What the button on a row does with the row's reference. */
+type PickAction = "copy" | "insert";
+
 type RowProps = {
   label: string | null;
   value: Json;
   path: string | null;
   depth: number;
+  openDepth: number;
+  action: PickAction;
   onPick?: (reference: string) => void;
 };
 
-function Row({ label, value, path, depth, onPick }: RowProps) {
+function Row({ label, value, path, depth, openDepth, action, onPick }: RowProps) {
   const isBranch = value !== null && typeof value === "object";
   const entries: [string | number, Json][] = !isBranch
     ? []
@@ -42,7 +47,7 @@ function Row({ label, value, path, depth, onPick }: RowProps) {
       ? value.map((entry, index) => [index, entry])
       : Object.entries(value);
 
-  const [open, setOpen] = useState(depth < 2);
+  const [open, setOpen] = useState(depth < openDepth);
   const [shown, setShown] = useState(PAGE);
 
   const summary = !isBranch
@@ -73,7 +78,7 @@ function Row({ label, value, path, depth, onPick }: RowProps) {
           {isBranch ? <span className="text-faint">{summary}</span> : <Scalar value={value} />}
         </span>
 
-        {path && onPick && (
+        {path && onPick && action === "copy" && (
           <button
             type="button"
             onClick={() => onPick(`{{ ${path} }}`)}
@@ -82,6 +87,18 @@ function Row({ label, value, path, depth, onPick }: RowProps) {
             className="mt-0.5 flex h-5 shrink-0 items-center gap-1 rounded px-1 text-[10px] font-medium text-accent opacity-0 hover:bg-accent-soft focus-visible:opacity-100 group-hover:opacity-100"
           >
             <Copy size={11} /> ref
+          </button>
+        )}
+        {/* Inserting is what the list is for, so the button does not hide. */}
+        {path && onPick && action === "insert" && (
+          <button
+            type="button"
+            onClick={() => onPick(`{{ ${path} }}`)}
+            title={`Insert {{ ${path} }}`}
+            aria-label={`Insert the reference to ${path}`}
+            className="mt-0.5 flex h-5 shrink-0 items-center gap-1 rounded px-1 text-[10px] font-medium text-accent hover:bg-accent-soft"
+          >
+            <CornerDownLeft size={11} /> insert
           </button>
         )}
       </div>
@@ -95,6 +112,8 @@ function Row({ label, value, path, depth, onPick }: RowProps) {
               value={entry}
               path={path === null ? null : childPath(path, key)}
               depth={depth + 1}
+              openDepth={openDepth}
+              action={action}
               onPick={onPick}
             />
           ))}
@@ -117,15 +136,20 @@ function Row({ label, value, path, depth, onPick }: RowProps) {
 
 type JsonTreeProps = {
   value: Json;
-  /** Where this data sits, as a reference: "steps.weather". Omit to hide the copy buttons. */
+  /** Where this data sits, as a reference: "steps.weather". Omit to hide the buttons. */
   path?: string;
+  /** A name for the top row, for when several trees are listed together. */
+  label?: string;
+  /** How many levels start open. */
+  openDepth?: number;
+  action?: PickAction;
   onPick?: (reference: string) => void;
 };
 
-export function JsonTree({ value, path, onPick }: JsonTreeProps) {
+export function JsonTree({ value, path, label, openDepth = 2, action = "copy", onPick }: JsonTreeProps) {
   return (
     <ul className="font-mono text-[12px]">
-      <Row label={null} value={value} path={path ?? null} depth={0} onPick={onPick} />
+      <Row label={label ?? null} value={value} path={path ?? null} depth={0} openDepth={openDepth} action={action} onPick={onPick} />
     </ul>
   );
 }

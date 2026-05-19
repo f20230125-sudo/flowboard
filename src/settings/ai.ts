@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AiSettings } from "@/engine/types";
+import { errorMessage, type AiSettings } from "@/engine/types";
 
 // Which language model the AI step talks to.
 //
@@ -17,7 +17,11 @@ export type AiProvider = (typeof AI_PROVIDERS)[number];
 type Preset = {
   label: string;
   baseUrl: string;
-  /** A starting point only. The dialog can list what the key really has access to. */
+  /**
+   * A starting point only. The dialog can list what the key really has access to.
+   * Checked against each provider's own model list on 6 October 2026: providers
+   * retire models, and a name that worked last year may refuse a new key.
+   */
   model: string;
   keyPage?: string;
   note: string;
@@ -27,14 +31,14 @@ export const AI_PRESETS: Record<Exclude<AiProvider, "none">, Preset> = {
   gemini: {
     label: "Google Gemini",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    model: "gemini-2.5-flash",
+    model: "gemini-3.8-flash",
     keyPage: "https://aistudio.google.com/apikey",
     note: "Has a free tier. Create a key in Google AI Studio.",
   },
   groq: {
     label: "Groq",
     baseUrl: "https://api.groq.com/openai/v1",
-    model: "llama-3.3-70b-versatile",
+    model: "openai/gpt-oss-120b",
     keyPage: "https://console.groq.com/keys",
     note: "Has a free tier. Create a key in the Groq console.",
   },
@@ -126,17 +130,13 @@ export async function listModels(config: AiConfig, fetcher: typeof fetch = fetch
     return { ok: false, message: "Could not reach the service. Check the address." };
   }
 
-  const data = (await response.json().catch(() => null)) as {
-    data?: { id?: unknown }[];
-    error?: { message?: unknown } | string;
-  } | null;
+  const data = (await response.json().catch(() => null)) as { data?: { id?: unknown }[] } | null;
 
   if (!response.ok) {
-    const said = typeof data?.error === "string" ? data.error : data?.error?.message;
     if (response.status === 401 || response.status === 403) {
       return { ok: false, message: "The service refused the key. Check that it is complete and still active." };
     }
-    return { ok: false, message: `The service answered ${response.status}. ${typeof said === "string" ? said : ""}`.trim() };
+    return { ok: false, message: `The service answered ${response.status}. ${errorMessage(data) ?? ""}`.trim() };
   }
 
   const models = (data?.data ?? [])

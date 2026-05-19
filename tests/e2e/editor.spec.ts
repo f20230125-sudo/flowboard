@@ -1,6 +1,14 @@
 import { readFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
-import { block, blocks, connections, mockApis, openBlankFlow, openTemplate, saved } from "./helpers";
+import { expect, test, type Page } from "@playwright/test";
+import { block, blocks, connections, mockApis, openBlankFlow, openTemplate, runButton, saved } from "./helpers";
+
+/** Where a block sits on the canvas, whatever the zoom and scroll. */
+async function place(page: Page, id: string): Promise<{ x: number; y: number }> {
+  const [x, y] = await block(page, id).evaluate((element) =>
+    (/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(element.style.transform) ?? []).slice(1).map(Number),
+  );
+  return { x, y };
+}
 
 test.describe("building a flow", () => {
   test("blocks added by clicking are chained and connected, and undo takes them back", async ({ page }) => {
@@ -80,6 +88,81 @@ test.describe("building a flow", () => {
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("start");
     await page.getByRole("textbox", { name: "Name", exact: true }).press("Enter");
     await expect(page.getByText('Another block is already named "start".')).toBeVisible();
+  });
+
+  test("a value from an earlier step is inserted with a click, where the cursor was", async ({ page, context }) => {
+    await mockApis(context);
+    await openTemplate(page, /Heat check/, "getWeather");
+    await block(page, "stayIn").click();
+
+    // Before a run: the trigger's sample data is there, the steps are named.
+    const advice = page.getByRole("textbox", { name: "Fields: value 3" });
+    await advice.focus();
+    await advice.press("Home");
+    await page.getByRole("button", { name: "Insert a value into Fields: value 3" }).click();
+    const list = page.getByRole("group", { name: "Values to insert into Fields: value 3" });
+    await expect(list.getByRole("button", { name: /steps\.getWeather/ })).toContainText("run the flow to see inside");
+    await list.getByRole("button", { name: "Insert the reference to trigger.city" }).click();
+
+    // It went in at the start of the text, and the list closed.
+    await expect(advice).toHaveValue("{{ trigger.city }}Too hot. Stay inside until the evening.");
+    await expect(list).toBeHidden();
+    await expect(advice).toBeFocused();
+    await expect(page.getByRole("button", { name: /^Undo/ })).toHaveAttribute("title", "Undo: Edit settings (Ctrl+Z)");
+
+    // After a run: real data, down to the value wanted. A selection is replaced.
+    await runButton(page).click();
+    await expect(page.getByRole("tab", { name: /Run succeeded/ })).toBeVisible();
+    await block(page, "stayIn").click();
+    const temperature = page.getByRole("textbox", { name: "Fields: value 2" });
+    await temperature.fill("38");
+    await temperature.selectText();
+    await page.getByRole("button", { name: "Insert a value into Fields: value 2" }).click();
+    const data = page.getByRole("group", { name: "Values to insert into Fields: value 2" });
+    await data.getByRole("button", { name: "Open body" }).click();
+    await data.getByRole("button", { name: "Open current" }).click();
+    await data.getByRole("button", { name: "Insert the reference to steps.getWeather.body.current.wind_speed_10m" }).click();
+    await expect(temperature).toHaveValue("{{ steps.getWeather.body.current.wind_speed_10m }}");
+
+    // The flow still has no problems, and uses the value on the next run.
+    await runButton(page).click();
+    await expect(page.getByRole("tab", { name: /Run succeeded/ })).toBeVisible();
+    await expect(page.getByRole("tabpanel")).toContainText("temperature: 14.2");
+    await expect(page.getByRole("tabpanel")).toContainText('advice: "DubaiToo hot. Stay inside until the evening."');
+  });
+
+  test("tidy up lines the blocks up again, as one step to undo", async ({ page, context }) => {
+    await mockApis(context);
+    await openTemplate(page, /Heat check/, "getWeather");
+
+    // Nudge the last block out of line with the keyboard.
+    await block(page, "result").click();
+    for (let press = 0; press < 6; press += 1) await page.keyboard.press("ArrowDown");
+    expect((await place(page, "result")).y).toBeGreaterThan((await place(page, "isTooHot")).y);
+
+    await page.getByRole("button", { name: "Tidy up the layout" }).click();
+    await expect(page.getByRole("button", { name: /^Undo/ })).toHaveAttribute("title", "Undo: Tidy up (Ctrl+Z)");
+
+    const at = Object.fromEntries(
+      await Promise.all(
+        ["start", "getWeather", "isTooHot", "stayIn", "goOut", "result"].map(async (id) => [id, await place(page, id)] as const),
+      ),
+    );
+    // One line through the Condition, its two sides above and below, True on top.
+    expect([at.start.y, at.getWeather.y, at.result.y]).toEqual([at.isTooHot.y, at.isTooHot.y, at.isTooHot.y]);
+    expect(at.stayIn.y).toBeLessThan(at.isTooHot.y);
+    expect(at.goOut.y).toBeGreaterThan(at.isTooHot.y);
+    expect(at.stayIn.x).toBe(at.goOut.x);
+    expect([at.start.x, at.getWeather.x, at.isTooHot.x, at.stayIn.x, at.result.x]).toEqual(
+      [0, 1, 2, 3, 4].map((column) => at.start.x + column * 280),
+    );
+
+    // A second press has nothing to do, and says so instead of adding a step.
+    await page.getByRole("button", { name: "Tidy up the layout" }).click();
+    await expect(page.getByRole("status")).toContainText("The blocks are already lined up.");
+
+    await page.getByRole("button", { name: /^Undo/ }).click();
+    expect((await place(page, "result")).y).toBeGreaterThan((await place(page, "isTooHot")).y);
   });
 
   test("delete, duplicate, copy and paste", async ({ page, context }) => {
@@ -264,6 +347,7 @@ test.describe("help and small screens", () => {
     await expect(page.getByRole("complementary", { name: "Blocks" })).toBeHidden();
     await expect(page.getByRole("complementary", { name: "Settings" })).toBeHidden();
     await expect(page.getByRole("button", { name: /^Nothing to undo|^Undo/ })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Tidy up the layout" })).toBeHidden();
     await expect(page.locator(".react-flow__minimap")).toBeHidden();
 
     await page.getByRole("button", { name: "Run", exact: true }).click();

@@ -33,6 +33,7 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 export const MAX_DELAY_MS = 60_000;
 export const MAX_TIMEOUT_MS = 30_000;
+export const MAX_RETRIES = 3;
 
 const keyValue = z.object({ key: z.string(), value: z.string() });
 export type KeyValue = z.infer<typeof keyValue>;
@@ -51,6 +52,8 @@ const httpConfig = z.object({
   /** Treat a 4xx or 5xx answer as a failed step. */
   failOnError: z.boolean().default(true),
   timeoutMs: z.number().int().min(1000).max(MAX_TIMEOUT_MS).default(10_000),
+  /** How many more times to call when the server is busy or cannot be reached. */
+  retries: z.number().int().min(0).max(MAX_RETRIES).default(0),
   /** "server" sends the call through /api/relay for APIs that refuse browsers. */
   via: z.enum(["browser", "server"]).default("browser"),
 });

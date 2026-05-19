@@ -1,12 +1,19 @@
 import type { ConfigOf } from "@/flow/schema";
 import { evaluate } from "./condition";
 import { render, renderText, renderValue, type Json } from "./reference";
-import { StepError, isAbortError, type ExecContext, type Executor, type ExecutorMap } from "./types";
+import { StepError, errorMessage, isAbortError, type ExecContext, type Executor, type ExecutorMap } from "./types";
 
 // What each block does when it runs. Every executor is a plain async function
 // of (settings, context) → output, so each one can be tested on its own.
 
 const MAX_RESPONSE_CHARS = 2_000_000;
+
+/** Answers that say "not now" rather than "no": worth asking again. */
+const BUSY_STATUSES = new Set([429, 502, 503, 504]);
+/** Failures without an answer that may pass by themselves. */
+const PASSING_FAILURES = new Set(["network", "timeout"]);
+/** The wait before the second try. It doubles for each try after that. */
+export const FIRST_RETRY_WAIT_MS = 500;
 
 const trigger: Executor<"trigger"> = async (config) => {
   const text = config.payload.trim();
@@ -106,36 +113,56 @@ const http: Executor<"http"> = async (config, context) => {
     }
   }
 
-  // Two things can cut the call short: the step's own time limit, and Stop.
-  const timeout = new AbortController();
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    timeout.abort();
-  }, config.timeoutMs);
-  const onStop = () => timeout.abort();
-  context.signal.addEventListener("abort", onStop, { once: true });
+  /** One try, with its own time limit. */
+  const callOnce = async (): Promise<Answer> => {
+    // Two things can cut the call short: the step's own time limit, and Stop.
+    const timeout = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      timeout.abort();
+    }, config.timeoutMs);
+    const onStop = () => timeout.abort();
+    context.signal.addEventListener("abort", onStop, { once: true });
 
-  let answer: Answer;
-  try {
-    answer =
-      config.via === "server"
+    try {
+      return config.via === "server"
         ? await callThroughRelay(url, { method: config.method, headers, body, timeoutMs: config.timeoutMs }, timeout.signal, context)
         : await callDirect(url, { method: config.method, headers, body, signal: timeout.signal }, context);
-  } catch (problem) {
-    if (problem instanceof StepError) throw problem;
-    if (context.signal.aborted) throw problem;
-    if (timedOut || isAbortError(problem)) {
-      throw new StepError("timeout", `${url.host} did not answer within ${config.timeoutMs / 1000} seconds.`);
+    } catch (problem) {
+      if (problem instanceof StepError) throw problem;
+      if (context.signal.aborted) throw problem;
+      if (timedOut || isAbortError(problem)) {
+        throw new StepError("timeout", `${url.host} did not answer within ${config.timeoutMs / 1000} seconds.`);
+      }
+      const hint =
+        config.via === "server"
+          ? "The address may be wrong or the server may be down."
+          : "The address may be wrong, the server may be down, or it may refuse calls from a browser. For the last case, turn on \"Send through server\".";
+      throw new StepError("network", `Could not reach ${url.host}. ${hint}`);
+    } finally {
+      clearTimeout(timer);
+      context.signal.removeEventListener("abort", onStop);
     }
-    const hint =
-      config.via === "server"
-        ? "The address may be wrong or the server may be down."
-        : "The address may be wrong, the server may be down, or it may refuse calls from a browser. For the last case, turn on \"Send through server\".";
-    throw new StepError("network", `Could not reach ${url.host}. ${hint}`);
-  } finally {
-    clearTimeout(timer);
-    context.signal.removeEventListener("abort", onStop);
+  };
+
+  // Try, and while tries are left, try again after a busy answer or a failure
+  // that may pass. Stop cuts the wait short the same way it cuts a Delay.
+  let answer: Answer;
+  let tries = 0;
+  for (;;) {
+    tries += 1;
+    const lastTry = tries > config.retries;
+    try {
+      answer = await callOnce();
+      if (lastTry || !BUSY_STATUSES.has(answer.status)) break;
+    } catch (problem) {
+      if (!(problem instanceof StepError) || !PASSING_FAILURES.has(problem.code)) throw problem;
+      if (lastTry) {
+        throw tries === 1 ? problem : new StepError(problem.code, `${problem.message} Tried ${tries} times.`);
+      }
+    }
+    await context.sleep(FIRST_RETRY_WAIT_MS * 2 ** (tries - 1), context.signal);
   }
 
   if (answer.text.length > MAX_RESPONSE_CHARS) {
@@ -150,9 +177,10 @@ const http: Executor<"http"> = async (config, context) => {
   };
   if (!output.ok && config.failOnError) {
     const reason = answer.statusText ? `${answer.status} ${answer.statusText}` : String(answer.status);
-    throw new StepError("http_status", `${url.host} answered ${reason}.`, output);
+    const after = tries > 1 ? ` after ${tries} tries` : "";
+    throw new StepError("http_status", `${url.host} answered ${reason}${after}.`, output);
   }
-  return { output };
+  return tries > 1 ? { output, note: `Answered on try ${tries} of ${config.retries + 1}.` } : { output };
 };
 
 // --- Logic and data ---------------------------------------------------------
@@ -287,12 +315,10 @@ const ai: Executor<"ai"> = async (config, context) => {
 
   const data = (await response.json().catch(() => null)) as {
     choices?: { message?: { content?: unknown } }[];
-    error?: { message?: unknown } | string;
   } | null;
 
   if (!response.ok) {
-    const said = typeof data?.error === "string" ? data.error : data?.error?.message;
-    const reason = typeof said === "string" ? said : response.statusText;
+    const reason = errorMessage(data) ?? response.statusText;
     throw new StepError("ai_refused", `The AI service answered ${response.status}. ${reason}`.trim());
   }
 
