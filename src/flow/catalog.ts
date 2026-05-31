@@ -26,6 +26,8 @@ export type FieldSpec = {
   min?: number;
   max?: number;
   step?: number;
+  /** A number that may be left empty, which is saved as null. */
+  optional?: boolean;
   /** Labels for the two columns of a "pairs" field. */
   pairLabels?: [string, string];
   /** The text is used exactly as typed: references in it are not filled in. */
@@ -191,7 +193,17 @@ export const CATALOG: { [T in NodeType]: BlockSpec<T> } = {
         help: "Used when no key is set in Settings, and shown as a sample.",
       },
       { key: "model", label: "Model", kind: "text", literal: true, placeholder: "Leave empty to use the one in Settings" },
-      { key: "temperature", label: "Temperature", kind: "number", min: 0, max: 2, step: 0.1 },
+      {
+        key: "temperature",
+        label: "Temperature",
+        kind: "number",
+        min: 0,
+        max: 2,
+        step: 0.1,
+        optional: true,
+        placeholder: "The model's own",
+        help: "Leave empty unless you need it. Lower is steadier, higher is more varied, and newer models work best with their own setting.",
+      },
     ],
   },
   delay: {
