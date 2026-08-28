@@ -1,51 +1,64 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useContext } from "react";
 import { shallowEqual } from "react-redux";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Ban, Check, LoaderCircle, SkipForward, X } from "lucide-react";
+import { Ban, Check, LoaderCircle, SkipForward, TriangleAlert, X } from "lucide-react";
 import { CATALOG } from "@/flow/catalog";
 import { describeNode } from "@/flow/describe";
 import { useAppSelector } from "@/store/hooks";
 import type { StepState } from "@/store/runSlice";
 import { selectProblemBadge, type CanvasNode } from "@/store/selectors";
-import { BlockIcon, blockTone } from "./blockLook";
+import { BlockIcon } from "./blockLook";
+import { ReadOnlyContext } from "./constants";
 import { STATUS_LABELS, formatMs } from "./runText";
 
 // One block on the canvas. Data flows left to right: connections come in on
-// the left edge and leave on the right. A Condition has two ways out.
+// the left edge and leave on the right.
+//
+// Shape tells the kind: Start and Output are terminators (round ends), every
+// step is a rectangle, a Condition is a rectangle with a fork under it and two
+// exits. State is told by a readout tab hung from the top edge, which stays
+// legible as a dark shape even when the canvas is fitted small.
 //
 // Each block reads its own slice of the run state, so when one step finishes
 // only that block is drawn again.
 
-const FRAME: Record<StepState["status"] | "idle", string> = {
-  idle: "border-line hover:border-line-strong",
-  running: "border-accent fb-running",
-  succeeded: "border-ok",
-  failed: "border-bad ring-2 ring-bad/30",
-  skipped: "border-dashed border-line-strong",
-  cancelled: "border-dashed border-line-strong",
-};
+const TAB = "absolute bottom-full flex h-5 items-center gap-1 rounded-t-tab px-1.5 font-mono text-[11.5px] font-bold leading-none";
+const HOLLOW = "border border-b-0 border-dashed border-edge bg-ground text-ink-3";
 
-function StatusChip({ step }: { step: StepState }) {
+function ReadoutTab({ step, terminator }: { step: StepState; terminator: boolean }) {
+  const place = terminator ? "right-7" : "right-2";
+  const { status } = step;
   const tone =
-    step.status === "succeeded"
-      ? "text-ok border-ok"
-      : step.status === "failed"
-        ? "text-bad border-bad"
-        : step.status === "running"
-          ? "text-accent border-accent"
-          : "text-muted border-line-strong";
+    status === "succeeded" ? "bg-ink text-sheet" : status === "failed" ? "bg-fail text-on-fail" : HOLLOW;
+  return (
+    <span className={`${TAB} ${place} ${tone}`}>
+      {status === "running" && <LoaderCircle size={11} className="animate-spin" aria-hidden />}
+      {status === "succeeded" && <Check size={11} strokeWidth={3} aria-hidden />}
+      {status === "failed" && <X size={11} strokeWidth={3} aria-hidden />}
+      {status === "skipped" && <SkipForward size={10} aria-hidden />}
+      {status === "cancelled" && <Ban size={10} aria-hidden />}
+      {status === "succeeded" && step.ms !== undefined ? formatMs(step.ms) : STATUS_LABELS[status]}
+    </span>
+  );
+}
+
+function ProblemTab({ errors, warnings, text, terminator }: { errors: number; warnings: number; text: string; terminator: boolean }) {
+  const place = terminator ? "right-7" : "right-2";
+  const failing = errors > 0;
+  const words = failing
+    ? `${errors} to fix`
+    : `${warnings} ${warnings === 1 ? "warning" : "warnings"}`;
   return (
     <span
-      className={`absolute -top-2.5 right-2 flex h-5 items-center gap-1 rounded-full border bg-surface px-1.5 text-[10px] font-medium ${tone}`}
+      className={`${TAB} ${place} border border-b-0 bg-sheet ${failing ? "border-fail text-fail" : "border-ink text-ink"}`}
+      title={text}
+      role="img"
+      aria-label={failing ? `${errors} ${errors === 1 ? "problem" : "problems"} to fix` : `${warnings} ${warnings === 1 ? "warning" : "warnings"}`}
     >
-      {step.status === "running" && <LoaderCircle size={11} className="animate-spin" />}
-      {step.status === "succeeded" && <Check size={11} strokeWidth={3} />}
-      {step.status === "failed" && <X size={11} strokeWidth={3} />}
-      {step.status === "skipped" && <SkipForward size={10} />}
-      {step.status === "cancelled" && <Ban size={10} />}
-      {step.status === "succeeded" && step.ms !== undefined ? formatMs(step.ms) : STATUS_LABELS[step.status]}
+      {!failing && <TriangleAlert size={11} aria-hidden />}
+      {words}
     </span>
   );
 }
@@ -54,76 +67,77 @@ function BlockNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
   const { node } = data;
   const spec = CATALOG[node.type];
   const branches = spec.outputs.length > 1;
+  const terminator = node.type === "trigger" || node.type === "output";
+  const readOnly = useContext(ReadOnlyContext);
 
   const step = useAppSelector((state) => state.run.steps[id]);
-  const { errors, warnings, text: problemText } = useAppSelector(
-    (state) => selectProblemBadge(state, id),
-    shallowEqual,
-  );
+  const { errors, warnings, text: problemText } = useAppSelector((state) => selectProblemBadge(state, id), shallowEqual);
 
-  const frame = selected ? "border-accent ring-2 ring-accent/25" : FRAME[step?.status ?? "idle"];
-  // A block that did not run steps back: flat background, quieter name, faded
-  // icon. Its text is not faded, so it stays readable.
+  // A block that did not run steps back: dashed, on the ground, its words quieter.
   const quiet = step?.status === "skipped" || step?.status === "cancelled";
+  const frame = selected
+    ? "border-2 border-ink bg-sheet"
+    : step?.status === "failed"
+      ? "border-2 border-fail bg-sheet"
+      : quiet
+        ? "border-[1.5px] border-dashed border-edge bg-ground"
+        : `border-[1.5px] border-edge bg-sheet ${readOnly ? "" : "hover:border-ink-2"}`;
+  const ink = quiet ? "text-ink-3" : "text-ink";
+  const summaryInk = quiet ? "text-ink-3" : "text-ink-2";
+
+  const heading = (
+    <div className={`flex items-center gap-2.5 ${terminator ? "px-7" : "px-4"} ${branches ? "h-[68px]" : "h-full"}`}>
+      <span className={quiet ? "opacity-70" : undefined}>
+        <BlockIcon type={node.type} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className={`truncate font-mono text-[15px] font-semibold leading-tight ${ink}`}>{node.name}</div>
+        <div className={`mt-1 truncate font-mono text-[11.5px] leading-tight ${summaryInk}`}>{describeNode(node)}</div>
+      </div>
+    </div>
+  );
 
   return (
     <div
-      className={`fb-block relative w-[240px] rounded-xl border transition-[border-color,box-shadow,background-color] ${frame} ${
-        quiet ? "bg-bg" : "bg-surface shadow-panel"
-      }`}
-      style={{ borderLeft: `3px solid ${blockTone(node.type)}` }}
+      className={`fb-block relative w-[240px] transition-[border-color,background-color] duration-150 ${
+        terminator ? "rounded-full" : "rounded-block"
+      } ${branches ? "h-[120px]" : "h-20"} ${frame}`}
     >
-      {spec.hasInput && <Handle type="target" position={Position.Left} title="Connections arrive here" />}
+      {spec.hasInput && <Handle type="target" position={Position.Left} title={readOnly ? undefined : "Connections arrive here"} />}
 
-      {step && <StatusChip step={step} />}
-      {!step && (errors > 0 || warnings > 0) && (
-        <span
-          className={`absolute -top-2.5 right-2 flex h-5 min-w-5 items-center justify-center rounded-full border bg-surface px-1.5 text-[10px] font-semibold ${
-            errors > 0 ? "border-bad text-bad" : "border-warn text-warn"
-          }`}
-          title={problemText}
-          role="img"
-          aria-label={
-            errors > 0
-              ? `${errors} ${errors === 1 ? "problem" : "problems"} to fix`
-              : `${warnings} ${warnings === 1 ? "warning" : "warnings"}`
-          }
-        >
-          {errors > 0 ? `${errors} to fix` : "!"}
-        </span>
+      {step ? (
+        <ReadoutTab step={step} terminator={terminator} />
+      ) : (
+        (errors > 0 || warnings > 0) && !readOnly && (
+          <ProblemTab errors={errors} warnings={warnings} text={problemText} terminator={terminator} />
+        )
       )}
 
-      <div className="flex items-center gap-2.5 px-3 py-2.5">
-        <span className={quiet ? "opacity-50" : undefined}>
-          <BlockIcon type={node.type} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className={`truncate font-mono text-[13px] font-medium leading-tight ${quiet ? "text-muted" : "text-fg"}`}>
-            {node.name}
-          </div>
-          <div className="mt-0.5 truncate text-[11px] leading-tight text-muted">{describeNode(node)}</div>
-        </div>
-      </div>
+      {heading}
 
       {branches ? (
-        <div className="border-t border-line py-1">
+        <div className="border-t border-rule">
           {spec.outputs.map((output) => {
             const taken = step?.status === "succeeded" && step.branch === output.id;
             const notTaken = step?.status === "succeeded" && step.branch !== undefined && step.branch !== output.id;
             return (
-              <div
-                key={output.id}
-                className="relative flex h-6 items-center justify-end pr-4 text-[11px] font-medium"
-              >
-                <span className={notTaken ? "text-faint line-through" : output.id === "true" ? "text-ok" : "text-bad"}>
+              <div key={output.id} className="relative flex h-5 items-center justify-end pr-4 font-mono text-[11px] font-bold">
+                <span className={notTaken ? "text-ink-3 line-through" : "text-ink"}>
                   {output.label}
-                  {taken ? " ✓" : ""}
+                  {taken && (
+                    <>
+                      <span className="fb-glyph" aria-hidden>
+                        {" ✓"}
+                      </span>
+                      <span className="sr-only">, taken</span>
+                    </>
+                  )}
                 </span>
                 <Handle
                   type="source"
                   id={output.id}
                   position={Position.Right}
-                  title={`Drag to connect the ${output.label} side`}
+                  title={readOnly ? undefined : `Drag to connect the ${output.label} side`}
                 />
               </div>
             );
@@ -131,13 +145,7 @@ function BlockNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
         </div>
       ) : (
         spec.outputs.map((output) => (
-          <Handle
-            key={output.id}
-            type="source"
-            id={output.id}
-            position={Position.Right}
-            title="Drag to connect"
-          />
+          <Handle key={output.id} type="source" id={output.id} position={Position.Right} title={readOnly ? undefined : "Drag to connect"} />
         ))
       )}
     </div>

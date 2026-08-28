@@ -7,6 +7,7 @@ import { BLOCK_GROUPS, CATALOG } from "@/flow/catalog";
 import { NODE_TYPES, type NodeType } from "@/flow/schema";
 import { addBlock } from "@/store/editorThunks";
 import { useAppDispatch, useAppStore } from "@/store/hooks";
+import { Scroll } from "../ui";
 import { BlockIcon } from "./blockLook";
 import { BLOCK_DRAG_TYPE } from "./constants";
 
@@ -47,45 +48,45 @@ export function Palette() {
   };
 
   return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r border-line bg-surface lg:flex" aria-label="Blocks">
-      <div className="border-b border-line p-3">
+    <aside className="hidden w-56 shrink-0 flex-col border-r border-rule bg-sheet lg:flex" aria-label="Blocks">
+      <div className="border-b border-rule p-3">
         <label className="relative block">
           <span className="sr-only">Search blocks</span>
-          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
+          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search blocks"
-            className="h-8 w-full rounded-lg border border-line bg-bg pl-8 pr-2 text-[13px] text-fg placeholder:text-faint"
+            className="h-8 w-full rounded-control border border-edge bg-sheet pl-8 pr-2 text-[13px] text-ink placeholder:text-ink-3"
           />
         </label>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
-        {shown.length === 0 && <p className="px-1 text-[13px] text-muted">No block matches “{query.trim()}”.</p>}
+      <Scroll label="Blocks you can add" className="min-h-0 flex-1 overflow-y-auto pb-3">
+        {shown.length === 0 && <p className="px-3 pt-3 text-[13px] text-ink-2">No block matches “{query.trim()}”.</p>}
 
         {BLOCK_GROUPS.map((group) => {
           const types = shown.filter((type) => CATALOG[type].group === group);
           if (types.length === 0) return null;
           return (
-            <section key={group} className="mb-4 last:mb-0">
-              <h2 className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wider text-faint">{group}</h2>
-              <ul className="space-y-1.5">
+            <section key={group} className="mt-3 first:mt-0">
+              <h2 className="border-b border-rule px-3 pb-1.5 pt-2 text-[13px] font-semibold text-ink-2">{group}</h2>
+              <ul>
                 {types.map((type) => (
-                  <li key={type}>
+                  <li key={type} className="border-b border-rule">
                     <button
                       type="button"
                       draggable
                       onDragStart={(event) => onDragStart(event, type)}
                       onClick={() => addByClick(type)}
-                      className="flex w-full cursor-grab items-center gap-2.5 rounded-lg border border-line bg-surface p-2 text-left transition-colors hover:border-line-strong hover:bg-surface-2 active:cursor-grabbing"
+                      className="flex w-full cursor-grab items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-sheet-2 active:cursor-grabbing"
                       aria-label={`Add ${CATALOG[type].title}`}
                     >
-                      <BlockIcon type={type} size={28} />
+                      <BlockIcon type={type} />
                       <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-medium text-fg">{CATALOG[type].title}</span>
-                        <span className="block truncate text-[11px] text-muted">{CATALOG[type].summary}</span>
+                        <span className="block truncate text-[13px] font-semibold text-ink">{CATALOG[type].title}</span>
+                        <span className="block truncate text-[12px] text-ink-2">{CATALOG[type].summary}</span>
                       </span>
                     </button>
                   </li>
@@ -94,9 +95,9 @@ export function Palette() {
             </section>
           );
         })}
-      </div>
+      </Scroll>
 
-      <p className="border-t border-line p-3 text-[11px] leading-relaxed text-faint">
+      <p className="border-t border-rule p-3 text-[12px] leading-relaxed text-ink-3">
         Drag a block onto the canvas, or click it to add it after the selected block.
       </p>
     </aside>

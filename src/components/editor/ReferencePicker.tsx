@@ -74,8 +74,8 @@ export function useReferencePicker(
       aria-expanded={open}
       aria-controls={open ? panelId : undefined}
       onClick={() => setOpen(!open)}
-      className={`absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-md transition-colors hover:bg-accent-soft hover:text-accent ${
-        open ? "bg-accent-soft text-accent" : "text-faint"
+      className={`absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-control transition-colors hover:bg-sheet-2 hover:text-ink ${
+        open ? "bg-sheet-2 text-ink" : "text-ink-2"
       }`}
     >
       <Braces size={13} />
@@ -93,15 +93,15 @@ export function useReferencePicker(
         setOpen(false);
         backToField();
       }}
-      className="mt-1.5 max-h-60 overflow-y-auto rounded-lg border border-line bg-bg p-1.5"
+      className="mt-1.5 max-h-60 overflow-y-auto rounded-control bg-sheet-2 p-1.5"
     >
       {sources.length === 0 ? (
-        <p className="px-1 py-0.5 text-[11px] leading-relaxed text-muted">
+        <p className="px-1 py-0.5 text-[12.5px] leading-relaxed text-ink-2">
           Nothing runs before this block yet. Connect it after another block to use that block&apos;s data.
         </p>
       ) : (
         <>
-          <p className="px-1 pb-1 text-[11px] leading-relaxed text-muted">Press “insert” on the value to use.</p>
+          <p className="px-1 pb-1 text-[12.5px] leading-relaxed text-ink-2">Press “insert” on the value to use.</p>
           {sources.map((source) =>
             source.value === undefined ? (
               <button
@@ -109,10 +109,10 @@ export function useReferencePicker(
                 type="button"
                 onClick={() => pick(`{{ ${source.path} }}`)}
                 title={`Insert {{ ${source.path} }}`}
-                className="flex min-h-6 w-full items-center gap-2 rounded px-1 text-left font-mono text-[12px] hover:bg-surface-2"
+                className="flex min-h-6 w-full items-center gap-2 rounded-control px-1 text-left font-mono text-[12.5px] hover:bg-sheet"
               >
-                <span className="min-w-0 flex-1 truncate text-muted">{source.path}</span>
-                <span className="shrink-0 font-sans text-[10px] text-muted">
+                <span className="min-w-0 flex-1 truncate text-ink-2">{source.path}</span>
+                <span className="shrink-0 font-sans text-[12px] text-ink-2">
                   {source.status ? `${STATUS_LABELS[source.status].toLowerCase()} in the last run` : "run the flow to see inside"}
                 </span>
               </button>

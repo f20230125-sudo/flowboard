@@ -40,12 +40,15 @@ export function Editor({ flowId }: { flowId: string }) {
 
   if (status === "missing") {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-        <h1 className="text-xl font-semibold">This flow is not in this browser</h1>
-        <p className="max-w-sm text-sm text-muted">
+      <main id="main" tabIndex={-1} className="flex flex-1 flex-col justify-center gap-3 px-[var(--page-x)] py-16">
+        <h1 className="max-w-xl text-3xl font-extrabold leading-tight tracking-tight">This flow is not in this browser</h1>
+        <p className="max-w-[62ch] text-base leading-normal text-ink-2">
           Flows are saved in the browser they were made in. It may have been deleted, or made on another device.
         </p>
-        <Link href="/" className="mt-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg">
+        <Link
+          href="/"
+          className="mt-2 inline-flex h-11 items-center self-start rounded-control bg-ink px-4 text-sm font-bold text-sheet hover:bg-ink-2"
+        >
           See all flows
         </Link>
       </main>
@@ -54,7 +57,7 @@ export function Editor({ flowId }: { flowId: string }) {
 
   if (status !== "ready" || openId !== flowId) {
     return (
-      <main className="flex flex-1 items-center justify-center text-sm text-muted" aria-busy="true">
+      <main id="main" tabIndex={-1} className="flex flex-1 items-center justify-center text-sm text-ink-2" aria-busy="true">
         Opening the flow…
       </main>
     );
@@ -72,12 +75,13 @@ function Workspace() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <TopBar />
-      <p className="border-b border-line bg-surface-2 px-3 py-1.5 text-center text-xs text-muted lg:hidden">
+      <p className="border-b border-rule bg-ground px-[var(--page-x)] py-2 text-[13px] leading-snug text-ink-2 lg:hidden">
         You can run this flow here. To edit it, open Flowboard on a wider screen.
       </p>
       <div className="flex min-h-0 flex-1">
         <Palette />
-        <main className="flex min-w-0 flex-1 flex-col">
+        <main id="main" tabIndex={-1} className="flex min-w-0 flex-1 flex-col">
+          <h1 className="sr-only">Flow editor</h1>
           <div className="relative min-h-0 flex-1">
             <Canvas />
           </div>

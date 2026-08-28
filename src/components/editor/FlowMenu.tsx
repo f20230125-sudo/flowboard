@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, Ellipsis, Keyboard, Link as LinkIcon, Settings } from "lucide-react";
 import { useAppDispatch, useAppStore } from "@/store/hooks";
 import { toDocument } from "@/store/selectors";
@@ -16,6 +16,25 @@ export function FlowMenu() {
   const store = useAppStore();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+
+  /** Close the menu and put the keyboard back on the button that opened it, so focus never falls to the page. */
+  const close = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
+
+  // Opening the menu moves focus onto its first item.
+  useEffect(() => {
+    if (open) menu.current?.querySelector<HTMLElement>("[role=menuitem]")?.focus();
+  }, [open]);
+
+  const moveFocus = (step: number) => {
+    const items = [...(menu.current?.querySelectorAll<HTMLElement>("[role=menuitem]") ?? [])];
+    const at = items.indexOf(document.activeElement as HTMLElement);
+    items[(at + step + items.length) % items.length]?.focus();
+  };
 
   const currentFlow = () => toDocument(store.getState().flow, new Date());
 
@@ -49,7 +68,13 @@ export function FlowMenu() {
 
   return (
     <div className="relative">
-      <IconButton label="More actions" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <IconButton
+        ref={trigger}
+        label="More actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => (open ? close() : setOpen(true))}
+      >
         <Ellipsis size={16} />
       </IconButton>
 
@@ -58,12 +83,21 @@ export function FlowMenu() {
           {/* Covers the page under the menu, so a click anywhere else closes it. */}
           <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setOpen(false)} />
           <div
+            ref={menu}
             role="menu"
             aria-label="More actions"
             onKeyDown={(event) => {
-              if (event.key === "Escape") setOpen(false);
+              if (event.key === "Escape") {
+                event.preventDefault();
+                close();
+              } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                event.preventDefault();
+                moveFocus(event.key === "ArrowDown" ? 1 : -1);
+              } else if (event.key === "Tab") {
+                setOpen(false);
+              }
             }}
-            className="absolute right-0 top-9 z-40 w-60 rounded-xl border border-line bg-surface p-1 shadow-panel"
+            className="absolute right-0 top-10 z-40 w-60 rounded-block border border-rule bg-sheet p-1 shadow-overlay"
           >
             {items.map(({ label, icon: Icon, run }) => (
               <button
@@ -71,12 +105,13 @@ export function FlowMenu() {
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  setOpen(false);
+                  // Focus goes back first, so a dialog that opens next returns focus there when it closes.
+                  close();
                   run();
                 }}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-fg hover:bg-surface-2"
+                className="flex min-h-9 w-full items-center gap-2.5 rounded-control px-2.5 text-left text-[13px] font-medium text-ink hover:bg-sheet-2"
               >
-                <Icon size={15} className="text-muted" /> {label}
+                <Icon size={15} className="text-ink-2" aria-hidden /> {label}
               </button>
             ))}
           </div>

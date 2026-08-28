@@ -18,12 +18,13 @@ export function childPath(parent: string, key: string | number): string {
 }
 
 function Scalar({ value }: { value: Exclude<Json, Json[] | { [key: string]: Json }> }) {
-  if (value === null) return <span className="text-faint">null</span>;
+  // Everything is ink: strings are told by their quotes, numbers by their weight.
+  if (value === null) return <span className="text-ink-3">null</span>;
   if (typeof value === "string") {
-    return <span className="break-all text-ok">&quot;{value.length > 600 ? `${value.slice(0, 600)}…` : value}&quot;</span>;
+    return <span className="break-words text-ink">&quot;{value.length > 600 ? `${value.slice(0, 600)}…` : value}&quot;</span>;
   }
-  if (typeof value === "boolean") return <span className="text-warn">{String(value)}</span>;
-  return <span className="text-accent">{String(value)}</span>;
+  if (typeof value === "boolean") return <span className="font-semibold text-ink">{String(value)}</span>;
+  return <span className="font-semibold text-ink">{String(value)}</span>;
 }
 
 /** What the button on a row does with the row's reference. */
@@ -58,24 +59,24 @@ function Row({ label, value, path, depth, openDepth, action, onPick }: RowProps)
 
   return (
     <li>
-      <div className="group flex min-h-6 items-start gap-1 rounded px-1 hover:bg-surface-2">
+      <div className="group flex min-h-6 items-start gap-1 rounded-control px-1 hover:bg-sheet">
         {isBranch ? (
           <button
             type="button"
             onClick={() => setOpen(!open)}
             aria-expanded={open}
             aria-label={`${open ? "Close" : "Open"} ${label ?? "the data"}`}
-            className="mt-0.5 flex h-5 w-4 shrink-0 items-center justify-center text-faint hover:text-fg"
+            className="flex h-6 w-5 shrink-0 items-center justify-center rounded-control text-ink-2 hover:text-ink"
           >
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         ) : (
-          <span className="w-4 shrink-0" />
+          <span className="w-5 shrink-0" />
         )}
 
         <span className="min-w-0 flex-1 py-0.5 leading-5">
-          {label !== null && <span className="text-muted">{label}: </span>}
-          {isBranch ? <span className="text-faint">{summary}</span> : <Scalar value={value} />}
+          {label !== null && <span className="text-ink-2">{label}: </span>}
+          {isBranch ? <span className="text-ink-3">{summary}</span> : <Scalar value={value} />}
         </span>
 
         {path && onPick && action === "copy" && (
@@ -84,7 +85,7 @@ function Row({ label, value, path, depth, openDepth, action, onPick }: RowProps)
             onClick={() => onPick(`{{ ${path} }}`)}
             title={`Copy {{ ${path} }}`}
             aria-label={`Copy the reference to ${path}`}
-            className="mt-0.5 flex h-5 shrink-0 items-center gap-1 rounded px-1 text-[10px] font-medium text-accent opacity-0 hover:bg-accent-soft focus-visible:opacity-100 group-hover:opacity-100"
+            className="flex h-6 shrink-0 items-center gap-1 rounded-control px-1.5 text-[11.5px] font-semibold text-ink-2 opacity-0 hover:bg-sheet-2 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
           >
             <Copy size={11} /> ref
           </button>
@@ -96,7 +97,7 @@ function Row({ label, value, path, depth, openDepth, action, onPick }: RowProps)
             onClick={() => onPick(`{{ ${path} }}`)}
             title={`Insert {{ ${path} }}`}
             aria-label={`Insert the reference to ${path}`}
-            className="mt-0.5 flex h-5 shrink-0 items-center gap-1 rounded px-1 text-[10px] font-medium text-accent hover:bg-accent-soft"
+            className="flex h-6 shrink-0 items-center gap-1 rounded-control px-1.5 text-[11.5px] font-semibold text-ink-2 hover:bg-sheet-2 hover:text-ink"
           >
             <CornerDownLeft size={11} /> insert
           </button>
@@ -104,7 +105,7 @@ function Row({ label, value, path, depth, openDepth, action, onPick }: RowProps)
       </div>
 
       {isBranch && open && (
-        <ul className="ml-[11px] border-l border-line pl-1.5">
+        <ul className="ml-[13px] border-l border-rule pl-1.5">
           {entries.slice(0, shown).map(([key, entry]) => (
             <Row
               key={key}
@@ -122,7 +123,7 @@ function Row({ label, value, path, depth, openDepth, action, onPick }: RowProps)
               <button
                 type="button"
                 onClick={() => setShown(shown + PAGE)}
-                className="ml-5 rounded px-1 py-0.5 text-[11px] font-medium text-accent hover:bg-accent-soft"
+                className="ml-5 rounded-control px-1 py-0.5 text-[12px] font-semibold text-ink underline hover:bg-sheet"
               >
                 Show {Math.min(PAGE, entries.length - shown)} more of {entries.length - shown}
               </button>
@@ -148,7 +149,7 @@ type JsonTreeProps = {
 
 export function JsonTree({ value, path, label, openDepth = 2, action = "copy", onPick }: JsonTreeProps) {
   return (
-    <ul className="font-mono text-[12px]">
+    <ul className="font-mono text-[12.5px] leading-[1.55]">
       <Row label={label ?? null} value={value} path={path ?? null} depth={0} openDepth={openDepth} action={action} onPick={onPick} />
     </ul>
   );
