@@ -8,7 +8,7 @@ import { TEMPLATES, findTemplate, summarise } from "./index";
 // Stand-ins for the public APIs the templates call, shaped like the real answers.
 const ANSWERS: [RegExp, unknown, number?][] = [
   [/api\.open-meteo\.com/, { current: { temperature_2m: 41.2, wind_speed_10m: 12 } }],
-  [/open\.er-api\.com/, { result: "success", base_code: "AED", rates: { INR: 23.9, USD: 0.2723 } }],
+  [/open\.er-api\.com/, { result: "success", base_code: "AED", rates: { INR: 26.9, USD: 0.2723 } }],
   [
     /api\.github\.com/,
     [
@@ -56,8 +56,8 @@ describe("templates", () => {
       advice: "Too hot. Stay inside until the evening.",
     });
     expect(await run("dirham-rate")).toEqual({
-      rate: 23.9,
-      message: "1 AED is 23.9 INR. That is at or above your target.",
+      rate: 26.9,
+      message: "1 AED is 26.9 INR. That is at or above your target.",
     });
     expect(await run("repo-digest")).toMatchObject({ account: "vercel", popularRepositories: 2 });
     expect(await run("ticket-triage")).toEqual({

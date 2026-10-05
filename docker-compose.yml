@@ -1,0 +1,20 @@
+# Run Flowboard on your own machine:
+#
+#   docker compose up --build
+#
+# then open http://localhost:3000
+
+services:
+  flowboard:
+    build: .
+    image: flowboard:local
+    ports:
+      - "3000:3000"
+    environment:
+      # The relay (POST /api/relay) only calls a short list of public APIs.
+      # On your own copy you can replace the list, or allow every public host.
+      # Private and local addresses are refused either way.
+      # RELAY_ALLOWED_HOSTS: "api.example.com,other.example.com"
+      # RELAY_ALLOW_ALL: "1"
+      NODE_ENV: production
+    restart: unless-stopped
