@@ -263,6 +263,8 @@ test.describe("help and small screens", () => {
     await expect(page.getByText("To edit it, open Flowboard on a wider screen.")).toBeVisible();
     await expect(page.getByRole("complementary", { name: "Blocks" })).toBeHidden();
     await expect(page.getByRole("complementary", { name: "Settings" })).toBeHidden();
+    await expect(page.getByRole("button", { name: /^Nothing to undo|^Undo/ })).toBeHidden();
+    await expect(page.locator(".react-flow__minimap")).toBeHidden();
 
     await page.getByRole("button", { name: "Run", exact: true }).click();
     await expect(page.getByRole("tab", { name: /Run succeeded/ })).toBeVisible();
