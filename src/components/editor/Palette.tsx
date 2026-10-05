@@ -47,7 +47,7 @@ export function Palette() {
   };
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface" aria-label="Blocks">
+    <aside className="hidden w-56 shrink-0 flex-col border-r border-line bg-surface lg:flex" aria-label="Blocks">
       <div className="border-b border-line p-3">
         <label className="relative block">
           <span className="sr-only">Search blocks</span>

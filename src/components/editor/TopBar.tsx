@@ -46,6 +46,7 @@ export function TopBar({ children }: { children?: React.ReactNode }) {
 
       <div className="ml-auto flex items-center gap-1">
         <IconButton
+          className="hidden lg:inline-flex"
           label={canUndo ? `Undo: ${undoLabel} (Ctrl+Z)` : "Nothing to undo"}
           disabled={!canUndo}
           onClick={() => dispatch(flowActions.undo())}
@@ -53,13 +54,14 @@ export function TopBar({ children }: { children?: React.ReactNode }) {
           <Undo2 size={16} />
         </IconButton>
         <IconButton
+          className="hidden lg:inline-flex"
           label={canRedo ? `Redo: ${redoLabel} (Ctrl+Y)` : "Nothing to redo"}
           disabled={!canRedo}
           onClick={() => dispatch(flowActions.redo())}
         >
           <Redo2 size={16} />
         </IconButton>
-        <span className="mx-1 h-5 w-px bg-line" aria-hidden />
+        <span className="mx-1 hidden h-5 w-px bg-line lg:block" aria-hidden />
         <ThemeToggle />
         <FlowMenu />
         {children}
@@ -120,7 +122,7 @@ function FlowName({ name }: { name: string }) {
         }
       }}
       maxLength={80}
-      className="h-8 w-56 min-w-0 rounded-lg border border-transparent bg-transparent px-2 text-sm font-semibold text-fg transition-colors hover:border-line focus:border-line focus:bg-bg"
+      className="h-8 w-28 min-w-0 rounded-lg sm:w-56 border border-transparent bg-transparent px-2 text-sm font-semibold text-fg transition-colors hover:border-line focus:border-line focus:bg-bg"
     />
   );
 }
@@ -131,13 +133,13 @@ function SaveStatus() {
 
   if (status === "failed") {
     return (
-      <span className="flex items-center gap-1.5 text-xs text-bad" role="alert" title={error ?? undefined}>
+      <span className="hidden items-center gap-1.5 text-xs text-bad sm:flex" role="alert" title={error ?? undefined}>
         <CloudOff size={14} /> Not saved
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-1.5 text-xs text-faint" aria-live="polite">
+    <span className="hidden items-center gap-1.5 text-xs text-faint sm:flex" aria-live="polite">
       {status === "saving" ? (
         <>
           <LoaderCircle size={13} className="animate-spin" /> Saving

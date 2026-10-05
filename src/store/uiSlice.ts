@@ -8,9 +8,11 @@ export type BottomTab = "run" | "problems";
 export type UiState = {
   /** The panel under the canvas, or null when it is closed. */
   bottomTab: BottomTab | null;
+  /** Whether the list of keyboard shortcuts is showing. */
+  shortcutsOpen: boolean;
 };
 
-const initialState: UiState = { bottomTab: null };
+const initialState: UiState = { bottomTab: null, shortcutsOpen: false };
 
 const uiSlice = createSlice({
   name: "ui",
@@ -18,6 +20,9 @@ const uiSlice = createSlice({
   reducers: {
     bottomTabSet(state, action: PayloadAction<BottomTab | null>) {
       state.bottomTab = action.payload;
+    },
+    shortcutsToggled(state, action: PayloadAction<boolean>) {
+      state.shortcutsOpen = action.payload;
     },
     bottomTabToggled(state, action: PayloadAction<BottomTab>) {
       state.bottomTab = state.bottomTab === action.payload ? null : action.payload;

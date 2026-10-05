@@ -5,7 +5,14 @@ import { block, flow } from "@/test/build";
 import { AUTOSAVE_DELAY_MS } from "./autosave";
 import { addBlock, connectBlocks, copySelection, duplicateSelection, openFlow, pasteBlocks, renameBlock, saveNow } from "./editorThunks";
 import { HISTORY_LIMIT, flowActions } from "./flowSlice";
-import { selectCanvasNodes, selectProblems, selectSaveStatus, selectSelectedNode, selectUndoLabel } from "./selectors";
+import {
+  selectCanvasNodes,
+  selectProblemBadge,
+  selectProblems,
+  selectSaveStatus,
+  selectSelectedNode,
+  selectUndoLabel,
+} from "./selectors";
 import { makeStore } from "./store";
 
 const START = new Date("2026-10-05T10:00:00Z");
@@ -353,6 +360,30 @@ describe("what the canvas is given", () => {
     store.dispatch(flowActions.canvasNodesChanged([move("start", 100, 100, true), move("start", 100, 100, false)]));
     store.dispatch(flowActions.undo());
     expect(selectCanvasNodes(store.getState())[0].measured).toEqual({ width: 220, height: 64 });
+  });
+});
+
+describe("problems", () => {
+  const doc = () => flow([block("trigger", "start"), block("http", "call"), block("delay", "wait")], ["start>call", "call>wait"]);
+
+  it("gives each block a count of what is wrong with it", () => {
+    const { store } = setup(doc());
+    expect(selectProblemBadge(store.getState(), "call")).toEqual({ errors: 1, warnings: 0, text: "Give it an address to call." });
+    expect(selectProblemBadge(store.getState(), "wait")).toEqual({ errors: 0, warnings: 0, text: "" });
+  });
+
+  it("does not check the flow again when a block is only moved", () => {
+    const { store } = setup(doc());
+    const before = selectProblems(store.getState());
+
+    store.dispatch(flowActions.canvasNodesChanged([move("call", 400, 200, true)]));
+    store.dispatch(flowActions.canvasNodesChanged([move("call", 420, 220, false)]));
+    expect(selectProblems(store.getState())).toBe(before);
+
+    // A real change is checked.
+    store.dispatch(flowActions.settingChanged({ nodeId: "call", key: "url", value: "https://api.example.com" }));
+    expect(selectProblems(store.getState())).not.toBe(before);
+    expect(selectProblems(store.getState())).toEqual([]);
   });
 });
 

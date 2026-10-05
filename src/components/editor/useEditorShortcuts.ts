@@ -5,6 +5,7 @@ import { copySelection, duplicateSelection, pasteBlocks } from "@/store/editorTh
 import { flowActions } from "@/store/flowSlice";
 import { useAppDispatch } from "@/store/hooks";
 import { startRun } from "@/store/runThunks";
+import { uiActions } from "@/store/uiSlice";
 
 /** True while the visitor is typing in a field, where keys mean text. */
 function isTyping(target: EventTarget | null): boolean {
@@ -50,6 +51,8 @@ export function useEditorShortcuts(): void {
       } else if (key === "delete" || key === "backspace") {
         event.preventDefault();
         dispatch(flowActions.selectionDeleted());
+      } else if (event.key === "?") {
+        dispatch(uiActions.shortcutsToggled(true));
       } else if (key === "escape") {
         dispatch(flowActions.selectionSet({ nodeIds: [] }));
       }

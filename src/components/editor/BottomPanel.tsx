@@ -47,7 +47,8 @@ export function BottomPanel() {
 
   return (
     <section className="shrink-0 border-t border-line bg-surface" aria-label="Run and problems">
-      <div className="flex h-9 items-center gap-1 px-2" role="tablist" aria-label="Panels">
+      <div className="flex h-9 items-center gap-1 px-2">
+        <div className="flex items-center gap-1" role="tablist" aria-label="Panels">
         <TabButton tab="run" active={tab === "run"}>
           Run
           {runSummary && (
@@ -72,6 +73,7 @@ export function BottomPanel() {
             </span>
           )}
         </TabButton>
+        </div>
         {tab && (
           <IconButton label="Close the panel" className="ml-auto h-7 w-7" onClick={() => dispatch(uiActions.bottomTabSet(null))}>
             <X size={14} />
@@ -139,7 +141,7 @@ function RunView() {
 
   return (
     <div className="flex h-full">
-      <ol className="w-60 shrink-0 overflow-y-auto border-r border-line p-1.5" aria-label="Steps of the last run">
+      <ol className="w-36 shrink-0 overflow-y-auto border-r border-line p-1.5 sm:w-60" aria-label="Steps of the last run">
         {order.map((id) => {
           const step = steps[id];
           const node = byId.get(id);
@@ -154,10 +156,16 @@ function RunView() {
                 aria-current={id === openStepId}
                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
                   id === openStepId ? "bg-accent-soft" : "hover:bg-surface-2"
-                } ${step.status === "skipped" || step.status === "cancelled" ? "opacity-60" : ""}`}
+                }`}
               >
                 <StatusMark status={step.status} />
-                <span className="min-w-0 flex-1 truncate font-mono text-xs text-fg">{node?.name ?? "(deleted block)"}</span>
+                <span
+                  className={`min-w-0 flex-1 truncate font-mono text-xs ${
+                    step.status === "skipped" || step.status === "cancelled" ? "text-muted" : "text-fg"
+                  }`}
+                >
+                  {node?.name ?? "(deleted block)"}
+                </span>
                 <span className="shrink-0 text-[11px] text-faint">
                   {step.status === "succeeded" || step.status === "failed" ? formatMs(step.ms) : STATUS_LABELS[step.status]}
                 </span>
@@ -231,7 +239,8 @@ function StepDetail({ step, node }: { step: StepState; node: FlowNode | undefine
 
       {(hasOutput || hasInput) && (
         <>
-          <div className="mt-3 flex items-center gap-1" role="tablist" aria-label="Data of this step">
+          <div className="mt-3 flex items-center gap-1">
+            <div className="flex items-center gap-1" role="tablist" aria-label="Data of this step">
             {(["output", "input"] as const).map((kind) => (
               <button
                 key={kind}
@@ -247,6 +256,7 @@ function StepDetail({ step, node }: { step: StepState; node: FlowNode | undefine
                 {kind === "output" ? "Returned" : "Received"}
               </button>
             ))}
+            </div>
             <span className="ml-2 text-[11px] text-faint">Hover a row and press “ref” to copy its reference.</span>
           </div>
           <div className="mt-1.5 rounded-lg border border-line bg-bg p-1.5">

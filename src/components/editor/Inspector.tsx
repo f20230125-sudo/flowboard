@@ -33,7 +33,7 @@ export function Inspector() {
   const selectedEdges = useAppSelector(selectSelectedEdgeIds);
 
   return (
-    <aside className="flex w-[19rem] shrink-0 flex-col border-l border-line bg-surface" aria-label="Settings">
+    <aside className="hidden w-[19rem] shrink-0 flex-col border-l border-line bg-surface lg:flex" aria-label="Settings">
       {selected.length === 1 ? (
         // Keyed by block, so drafts in the form never carry over to another block.
         <BlockSettings key={selected[0].id} node={selected[0]} />
