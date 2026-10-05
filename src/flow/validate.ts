@@ -93,7 +93,7 @@ function requiredSettings(node: FlowNode): string[] {
   return missing;
 }
 
-export function validateFlow(flow: FlowDocument): Problem[] {
+export function validateFlow(flow: Pick<FlowDocument, "nodes" | "edges">): Problem[] {
   const problems: Problem[] = [];
   const { nodes, edges } = flow;
 

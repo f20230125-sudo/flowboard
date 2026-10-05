@@ -21,6 +21,8 @@ export type FieldSpec = {
   placeholder?: string;
   help?: string;
   options?: readonly string[];
+  /** What to show for an option, when its value is not friendly enough. */
+  optionLabels?: Record<string, string>;
   min?: number;
   max?: number;
   step?: number;
@@ -96,7 +98,8 @@ export const CATALOG: { [T in NodeType]: BlockSpec<T> } = {
         label: "Send from",
         kind: "select",
         options: ["browser", "server"],
-        help: "Some APIs refuse calls from a browser. \"server\" sends the call through Flowboard's relay.",
+        optionLabels: { browser: "Your browser", server: "Flowboard's server" },
+        help: "Some APIs refuse calls from a browser. For those, send the call through Flowboard's server.",
       },
       { key: "timeoutMs", label: "Give up after (ms)", kind: "number", min: 1000, max: 30000, step: 1000 },
     ],
