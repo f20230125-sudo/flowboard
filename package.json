@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "typecheck": "next typegen && tsc --noEmit",
     "screenshots": "node scripts/screenshots.mjs",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "diagram": "node scripts/architecture.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.13.0",

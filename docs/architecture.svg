@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 784" width="1280" height="784" role="img" aria-labelledby="title desc">
+<title id="title">How Flowboard works</title>
+<desc id="desc">In the browser, React components talk to a Redux Toolkit store. The store checks a flow against the flow rules, hands it to the engine, and receives events back as each block runs. Flows and the AI key are kept in browser storage. The engine calls public REST APIs directly, or through the server's relay when an API refuses browsers, and calls the AI provider with the visitor's own key. The Next.js server serves templates, the relay and a health route.</desc>
+<defs><marker id="head" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#aab2bd"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10 0 L0 5 L10 10 z" fill="#aab2bd"/></marker><marker id="head-accent" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#9090f8"/></marker><marker id="head-accent-start" viewBox="0 0 10 10" refX="1.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10 0 L0 5 L10 10 z" fill="#9090f8"/></marker><marker id="head-green" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#3ddc97"/></marker><marker id="head-green-start" viewBox="0 0 10 10" refX="1.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10 0 L0 5 L10 10 z" fill="#3ddc97"/></marker></defs>
+<rect width="1280" height="784" rx="18" fill="#0b0d10"/>
+<text x="40" y="54" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="700" fill="#e8eaee" text-anchor="start">How Flowboard works</text>
+<text x="40" y="81" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#aab2bd" text-anchor="start">Building and running a flow happens in your browser. The server serves the pages, the templates and a guarded relay.</text>
+<rect x="40" y="104" width="760" height="510" rx="16" fill="#101318" stroke="#262b34"/>
+<text x="64" y="134" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#9090f8" text-anchor="start" letter-spacing="1.2">IN YOUR BROWSER</text>
+<text x="776" y="134" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#8b94a1" text-anchor="end">TypeScript · React 19 · Next.js 16</text>
+<rect x="64" y="150" width="712" height="100" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="64" y="164" width="4" height="72" rx="2" fill="#6aa8ff"/>
+<text x="84" y="180" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#e8eaee" text-anchor="start">Screen</text>
+<text x="760" y="180" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="end">React components</text>
+<rect x="84" y="198" width="121" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="144.5" y="215.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">Block palette</text>
+<rect x="213" y="198" width="68" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="247" y="215.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">Canvas</text>
+<rect x="289" y="198" width="128" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="353" y="215.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">Settings panel</text>
+<rect x="425" y="198" width="90" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="470" y="215.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">Run panel</text>
+<rect x="523" y="198" width="121" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="583.5" y="215.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">Problems list</text>
+<rect x="652" y="198" width="90" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="697" y="215.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">Home page</text>
+<path d="M200 254 L200 290" fill="none" stroke="#aab2bd" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#head)"/>
+<text x="212" y="277" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">what you do: drag, connect, type, press Run</text>
+<path d="M540 290 L540 254" fill="none" stroke="#9090f8" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#head-accent)"/>
+<rect x="552" y="261" width="22" height="22" rx="11" fill="#9090f8"/>
+<text x="563" y="276.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0b0d10" text-anchor="middle">5</text>
+<text x="582" y="277" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">state, read through selectors</text>
+<rect x="64" y="294" width="492" height="116" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="64" y="308" width="4" height="88" rx="2" fill="#b197fc"/>
+<text x="84" y="324" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#e8eaee" text-anchor="start">State</text>
+<text x="540" y="324" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="end">Redux Toolkit store</text>
+<rect x="84" y="340" width="166" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="167" y="357.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">flow + undo history</text>
+<rect x="258" y="340" width="83" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="299.5" y="357.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">last run</text>
+<rect x="349" y="340" width="83" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="390.5" y="357.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">settings</text>
+<rect x="84" y="374" width="144" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="156" y="391.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">RTK Query (data)</text>
+<rect x="236" y="374" width="151" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="311.5" y="391.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">autosave listener</text>
+<rect x="596" y="294" width="180" height="116" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="596" y="308" width="4" height="88" rx="2" fill="#8b94a1"/>
+<text x="616" y="324" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#e8eaee" text-anchor="start">Storage</text>
+<text x="760" y="324" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="end">this browser</text>
+<rect x="616" y="340" width="98" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="665" y="357.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">your flows</text>
+<rect x="616" y="374" width="106" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="669" y="391.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">your AI key</text>
+<path d="M560 352 L592 352" fill="none" stroke="#aab2bd" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#head)" marker-start="url(#head-start)"/>
+<path d="M120 414 L120 458" fill="none" stroke="#9090f8" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#head-accent)"/>
+<rect x="132" y="425" width="22" height="22" rx="11" fill="#9090f8"/>
+<text x="143" y="440.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0b0d10" text-anchor="middle">1</text>
+<text x="162" y="441" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">check the flow</text>
+<path d="M466 414 L466 458" fill="none" stroke="#9090f8" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#head-accent)"/>
+<rect x="414" y="425" width="32" height="22" rx="11" fill="#9090f8"/>
+<text x="430" y="440.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0b0d10" text-anchor="middle">2-3</text>
+<text x="406" y="441" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="end">run it</text>
+<path d="M530 458 L530 414" fill="none" stroke="#9090f8" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#head-accent)"/>
+<rect x="542" y="425" width="22" height="22" rx="11" fill="#9090f8"/>
+<text x="553" y="440.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0b0d10" text-anchor="middle">4</text>
+<text x="572" y="441" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">events: started, finished, failed</text>
+<rect x="64" y="462" width="340" height="128" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="64" y="476" width="4" height="100" rx="2" fill="#f5b942"/>
+<text x="84" y="492" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#e8eaee" text-anchor="start">Flow rules</text>
+<text x="388" y="492" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="end">src/flow · no React</text>
+<rect x="84" y="510" width="113" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="140.5" y="527.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">schema (Zod)</text>
+<rect x="205" y="510" width="136" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="273" y="527.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">block catalogue</text>
+<rect x="84" y="544" width="166" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="167" y="561.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">checks before a run</text>
+<rect x="258" y="544" width="121" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="318.5" y="561.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">graph helpers</text>
+<rect x="436" y="462" width="340" height="128" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="436" y="476" width="4" height="100" rx="2" fill="#3ddc97"/>
+<text x="456" y="492" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#e8eaee" text-anchor="start">Engine</text>
+<text x="760" y="492" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="end">src/engine · no React</text>
+<rect x="456" y="510" width="90" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="501" y="527.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">scheduler</text>
+<rect x="554" y="510" width="98" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="603" y="527.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">references</text>
+<rect x="660" y="510" width="98" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="709" y="527.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">conditions</text>
+<rect x="456" y="544" width="189" height="26" rx="13" fill="#20252d" stroke="#363d49"/>
+<text x="550.5" y="561.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#e8eaee" text-anchor="middle">one executor per block</text>
+<rect x="880" y="104" width="360" height="262" rx="16" fill="#101318" stroke="#262b34"/>
+<text x="904" y="134" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#9090f8" text-anchor="start" letter-spacing="1.2">FLOWBOARD SERVER</text>
+<text x="1216" y="134" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#8b94a1" text-anchor="end">Next.js on Vercel or Docker</text>
+<rect x="904" y="156" width="312" height="54" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="904" y="170" width="4" height="26" rx="2" fill="#6aa8ff"/>
+<text x="924" y="179" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" font-weight="600" fill="#e8eaee" text-anchor="start">GET /api/templates</text>
+<text x="924" y="198" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">four ready-made flows</text>
+<rect x="904" y="220" width="312" height="72" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="904" y="234" width="4" height="44" rx="2" fill="#ff7a9c"/>
+<text x="924" y="243" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" font-weight="600" fill="#e8eaee" text-anchor="start">POST /api/relay</text>
+<text x="924" y="262" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">listed hosts only · never a private address</text>
+<text x="924" y="279" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">no redirects · time, size and rate limits</text>
+<rect x="904" y="302" width="312" height="48" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="904" y="316" width="4" height="20" rx="2" fill="#8b94a1"/>
+<text x="924" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" font-weight="600" fill="#e8eaee" text-anchor="start">GET /api/health</text>
+<text x="924" y="341" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">for Docker and Kubernetes probes</text>
+<rect x="880" y="418" width="360" height="196" rx="16" fill="#101318" stroke="#262b34"/>
+<text x="904" y="448" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#9090f8" text-anchor="start" letter-spacing="1.2">OUTSIDE SERVICES</text>
+<rect x="904" y="468" width="312" height="56" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="904" y="482" width="4" height="28" rx="2" fill="#3ddc97"/>
+<text x="924" y="491" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e8eaee" text-anchor="start">Public REST APIs</text>
+<text x="924" y="510" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">weather, GitHub, exchange rates, any other</text>
+<rect x="904" y="538" width="312" height="56" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="904" y="552" width="4" height="28" rx="2" fill="#3ddc97"/>
+<text x="924" y="561" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e8eaee" text-anchor="start">Your AI provider</text>
+<text x="924" y="580" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">Gemini, Groq, OpenAI or a compatible one</text>
+<path d="M780 183 L900 183" fill="none" stroke="#aab2bd" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#head)"/>
+<text x="840" y="175" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="middle">RTK Query</text>
+<path d="M780 508 L900 508" fill="none" stroke="#3ddc97" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#head-green)"/>
+<text x="840" y="500" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="middle">HTTP block</text>
+<path d="M780 478 L856 478 L856 256 L900 256" fill="none" stroke="#3ddc97" stroke-width="1.6" stroke-linejoin="round" stroke-dasharray="5 5" marker-end="url(#head-green)"/>
+<text transform="translate(848 366) rotate(-90)" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8b94a1" text-anchor="middle">when an API refuses browsers</text>
+<path d="M1220 256 L1230 256 L1230 496 L1220 496" fill="none" stroke="#3ddc97" stroke-width="1.6" stroke-linejoin="round" stroke-dasharray="5 5" marker-end="url(#head-green)"/>
+<path d="M780 566 L900 566" fill="none" stroke="#3ddc97" stroke-width="1.6" stroke-linejoin="round" marker-end="url(#head-green)"/>
+<text x="840" y="558" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="middle">AI step, your key</text>
+<text x="40" y="648" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e8eaee" text-anchor="start">What happens when you press Run</text>
+<rect x="40" y="662" width="224" height="94" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="56" y="677" width="22" height="22" rx="11" fill="#9090f8"/>
+<text x="67" y="692.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0b0d10" text-anchor="middle">1</text>
+<text x="88" y="693.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e8eaee" text-anchor="start">Check</text>
+<text x="56" y="721" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">One trigger, no loops, valid</text>
+<text x="56" y="739" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">settings and references.</text>
+<path d="M270 709 l6 0 m-4 -4 l4 4 l-4 4" fill="none" stroke="#8b94a1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="284" y="662" width="224" height="94" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="300" y="677" width="22" height="22" rx="11" fill="#9090f8"/>
+<text x="311" y="692.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0b0d10" text-anchor="middle">2</text>
+<text x="332" y="693.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e8eaee" text-anchor="start">Schedule</text>
+<text x="300" y="721" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">A block is ready when all</text>
+<text x="300" y="739" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">that feeds it has settled.</text>
+<path d="M514 709 l6 0 m-4 -4 l4 4 l-4 4" fill="none" stroke="#8b94a1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="528" y="662" width="224" height="94" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="544" y="677" width="22" height="22" rx="11" fill="#9090f8"/>
+<text x="555" y="692.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0b0d10" text-anchor="middle">3</text>
+<text x="576" y="693.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e8eaee" text-anchor="start">Execute</text>
+<text x="544" y="721" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">Ready blocks run together.</text>
+<text x="544" y="739" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">A Condition takes one side.</text>
+<path d="M758 709 l6 0 m-4 -4 l4 4 l-4 4" fill="none" stroke="#8b94a1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="772" y="662" width="224" height="94" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="788" y="677" width="22" height="22" rx="11" fill="#9090f8"/>
+<text x="799" y="692.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0b0d10" text-anchor="middle">4</text>
+<text x="820" y="693.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e8eaee" text-anchor="start">Report</text>
+<text x="788" y="721" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">The engine emits an event</text>
+<text x="788" y="739" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">as each step starts and ends.</text>
+<path d="M1002 709 l6 0 m-4 -4 l4 4 l-4 4" fill="none" stroke="#8b94a1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1016" y="662" width="224" height="94" rx="12" fill="#161a20" stroke="#2c323d"/>
+<rect x="1032" y="677" width="22" height="22" rx="11" fill="#9090f8"/>
+<text x="1043" y="692.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#0b0d10" text-anchor="middle">5</text>
+<text x="1064" y="693.5" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#e8eaee" text-anchor="start">Draw</text>
+<text x="1032" y="721" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">The store records it; only</text>
+<text x="1032" y="739" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#aab2bd" text-anchor="start">that block is drawn again.</text>
+</svg>

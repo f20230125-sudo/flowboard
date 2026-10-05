@@ -34,29 +34,47 @@ Nothing to install, no account, no key.
 
 ## How it works
 
-```mermaid
-flowchart LR
-  subgraph Browser
-    UI["React components<br/>canvas, palette, settings, run panel"]
-    Store["Redux store<br/>flow + undo history, run, settings"]
-    Engine["Engine<br/>plain TypeScript, no React"]
-    Storage[("Browser storage<br/>your flows, your key")]
-  end
-  subgraph Server["Next.js server"]
-    Templates["GET /api/templates"]
-    Relay["POST /api/relay"]
-  end
-  APIs["Public REST APIs"]
-  Model["Your AI provider"]
+![Architecture of Flowboard. In the browser: React components, a Redux Toolkit store, the flow rules, the engine and browser storage. On the server: the templates, relay and health routes. Outside: public REST APIs and the AI provider.](docs/architecture.svg)
 
-  UI <--> Store
-  Store -- "run this flow" --> Engine
-  Engine -- "events: started, finished, failed" --> Store
-  Store <--> Storage
-  UI -- "RTK Query" --> Templates
-  Engine -- "HTTP block" --> APIs
-  Engine -- "HTTP block, via server" --> Relay --> APIs
-  Engine -- "AI step, with your key" --> Model
+Read it from the top. What you do on the screen becomes actions in the store, and the screen redraws from the store's state. Nothing else holds state: the canvas itself is told what to show.
+
+The numbers on the arrows are the steps of a run, listed along the bottom of the picture:
+
+1. **Check.** The store asks the flow rules whether the flow can run. If not, the Problems list opens and nothing runs.
+2. **Schedule.** The engine works out which blocks are ready: those whose inputs have all settled.
+3. **Execute.** Ready blocks run together. An HTTP block calls its API straight from the browser, or through the relay when the API refuses browsers. An AI step calls your provider with your key.
+4. **Report.** The engine does not touch the screen. It emits an event as each step starts, finishes or fails.
+5. **Draw.** The store records each event, and only the block it concerns is drawn again.
+
+The same run as a conversation between the parts:
+
+```mermaid
+sequenceDiagram
+  actor You
+  participant Screen as Screen (React)
+  participant Store as Redux store
+  participant Rules as Flow rules
+  participant Engine
+  participant Outside as API or model
+
+  You->>Screen: press Run
+  Screen->>Store: startRun()
+  Store->>Rules: validateFlow()
+  alt something to fix
+    Rules-->>Store: problems
+    Store-->>Screen: open the Problems list
+  else ready to run
+    Store->>Engine: runFlow(flow, onEvent)
+    loop each block, as soon as it is ready
+      Engine-->>Store: node-started
+      Engine->>Outside: request (HTTP block or AI step)
+      Outside-->>Engine: answer
+      Engine-->>Store: node-finished or node-failed
+      Store-->>Screen: that block is redrawn
+    end
+    Engine-->>Store: run-finished
+    Store-->>Screen: the result opens in the run panel
+  end
 ```
 
 Six decisions shape the code.
