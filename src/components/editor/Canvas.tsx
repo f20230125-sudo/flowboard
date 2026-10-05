@@ -18,6 +18,7 @@ import { NODE_TYPES, type NodeType } from "@/flow/schema";
 import { addBlock, connectBlocks } from "@/store/editorThunks";
 import { flowActions } from "@/store/flowSlice";
 import { useAppDispatch, useAppSelector, useAppStore } from "@/store/hooks";
+import { runActions } from "@/store/runSlice";
 import { selectCanvasEdges, selectCanvasNodes, type CanvasEdge, type CanvasNode } from "@/store/selectors";
 import { useTheme } from "../theme";
 import { BlockNode } from "./BlockNode";
@@ -29,7 +30,8 @@ import { BLOCK_DRAG_TYPE } from "./constants";
 // it is handed a new object here on each render.
 const nodeTypes = { block: BlockNode };
 const edgeTypes = { flow: FlowEdge };
-const fitViewOptions = { maxZoom: 1, padding: 0.25 };
+const fitViewOptions = { maxZoom: 1, padding: 0.12 };
+const miniMapStyle = { width: 132, height: 84 };
 const snapGrid: [number, number] = [20, 20];
 
 /**
@@ -69,6 +71,14 @@ export function Canvas() {
     [store],
   );
 
+  // Clicking a block that took part in the last run shows its data.
+  const onNodeClick = useCallback(
+    (_event: unknown, node: CanvasNode) => {
+      if (store.getState().run.steps[node.id]) dispatch(runActions.stepOpened(node.id));
+    },
+    [dispatch, store],
+  );
+
   const onDragOver = useCallback((event: DragEvent) => {
     if (!event.dataTransfer.types.includes(BLOCK_DRAG_TYPE)) return;
     event.preventDefault();
@@ -96,6 +106,7 @@ export function Canvas() {
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
+      onNodeClick={onNodeClick}
       isValidConnection={isValidConnection}
       onDragOver={onDragOver}
       onDrop={onDrop}
@@ -119,6 +130,7 @@ export function Canvas() {
         nodeColor={(node) => blockTone((node as CanvasNode).data.node.type)}
         nodeStrokeWidth={0}
         nodeBorderRadius={6}
+        style={miniMapStyle}
         ariaLabel="Overview of the flow"
       />
     </ReactFlow>

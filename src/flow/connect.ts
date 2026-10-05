@@ -33,7 +33,7 @@ export function canConnect(
   return { ok: true };
 }
 
-const STEP_X = 300;
+const STEP_X = 280;
 const STEP_Y = 140;
 const GRID = 20;
 

@@ -2,6 +2,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import type { Edge, Node } from "@xyflow/react";
 import { FLOW_VERSION, type FlowDocument, type FlowEdge, type FlowNode } from "@/flow/schema";
 import { validateFlow, type Problem } from "@/flow/validate";
+import { toAiSettings } from "@/settings/ai";
 import type { FlowState } from "./flowSlice";
 import type { RootState } from "./store";
 
@@ -121,3 +122,26 @@ export const selectProblemsByNode = createSelector([selectProblems], (problems) 
   }
   return byNode;
 });
+
+// --- The last run ---------------------------------------------------------------
+
+export const selectRunStatus = (state: RootState) => state.run.status;
+export const selectIsRunning = (state: RootState) => state.run.status === "running";
+export const selectRunSteps = (state: RootState) => state.run.steps;
+export const selectRunOrder = (state: RootState) => state.run.order;
+export const selectRunResults = (state: RootState) => state.run.results;
+export const selectRunMs = (state: RootState) => state.run.ms;
+export const selectOpenStepId = (state: RootState) => state.run.openStepId;
+export const selectBottomTab = (state: RootState) => state.ui.bottomTab;
+
+export const selectErrorCount = createSelector(
+  [selectProblems],
+  (problems) => problems.filter((problem) => problem.level === "error").length,
+);
+
+// --- Visitor settings -----------------------------------------------------------
+
+export const selectAiConfig = (state: RootState) => state.settings.ai;
+export const selectSettingsOpen = (state: RootState) => state.settings.open;
+/** True when AI steps will call a real model instead of returning their sample. */
+export const selectHasModel = createSelector([selectAiConfig], (config) => toAiSettings(config) !== null);

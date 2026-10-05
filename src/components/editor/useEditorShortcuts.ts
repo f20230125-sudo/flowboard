@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { copySelection, duplicateSelection, pasteBlocks } from "@/store/editorThunks";
 import { flowActions } from "@/store/flowSlice";
 import { useAppDispatch } from "@/store/hooks";
+import { startRun } from "@/store/runThunks";
 
 /** True while the visitor is typing in a field, where keys mean text. */
 function isTyping(target: EventTarget | null): boolean {
@@ -12,8 +13,8 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 /**
- * Keyboard shortcuts for the editor: undo, redo, delete, duplicate, select
- * all, and copy/cut/paste of blocks.
+ * Keyboard shortcuts for the editor: run, undo, redo, delete, duplicate,
+ * select all, and copy/cut/paste of blocks.
  *
  * Copy and paste use the browser's own clipboard events, so blocks can be
  * pasted into another flow or another tab, and no permission prompt appears.
@@ -23,9 +24,16 @@ export function useEditorShortcuts(): void {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isTyping(event.target)) return;
       const mod = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
+
+      // Run works from anywhere, including while typing in a field.
+      if (mod && key === "enter") {
+        event.preventDefault();
+        dispatch(startRun());
+        return;
+      }
+      if (isTyping(event.target)) return;
 
       if (mod && key === "z" && !event.shiftKey) {
         event.preventDefault();

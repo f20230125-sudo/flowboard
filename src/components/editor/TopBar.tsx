@@ -2,20 +2,24 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, CloudOff, LoaderCircle, Redo2, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, CloudOff, LoaderCircle, Play, Redo2, Square, Undo2 } from "lucide-react";
 import { flowActions } from "@/store/flowSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { startRun, stopRun } from "@/store/runThunks";
 import {
   selectCanRedo,
   selectCanUndo,
+  selectErrorCount,
   selectFlowName,
+  selectIsRunning,
   selectRedoLabel,
   selectSaveError,
   selectSaveStatus,
   selectUndoLabel,
 } from "@/store/selectors";
 import { ThemeToggle } from "../ThemeToggle";
-import { IconButton } from "../ui";
+import { Button, IconButton } from "../ui";
+import { FlowMenu } from "./FlowMenu";
 
 export function TopBar({ children }: { children?: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -57,9 +61,36 @@ export function TopBar({ children }: { children?: React.ReactNode }) {
         </IconButton>
         <span className="mx-1 h-5 w-px bg-line" aria-hidden />
         <ThemeToggle />
+        <FlowMenu />
         {children}
+        <RunButton />
       </div>
     </header>
+  );
+}
+
+function RunButton() {
+  const dispatch = useAppDispatch();
+  const running = useAppSelector(selectIsRunning);
+  const errorCount = useAppSelector(selectErrorCount);
+
+  if (running) {
+    return (
+      <Button variant="outline" className="ml-1 w-[84px]" onClick={() => dispatch(stopRun())}>
+        <Square size={12} fill="currentColor" /> Stop
+      </Button>
+    );
+  }
+  return (
+    <Button
+      variant="primary"
+      className="ml-1 w-[84px]"
+      // With errors the button still answers: it opens the list of what to fix.
+      title={errorCount > 0 ? "Fix the problems first. Click to see them." : "Run the flow (Ctrl+Enter)"}
+      onClick={() => dispatch(startRun())}
+    >
+      <Play size={13} fill="currentColor" /> Run
+    </Button>
   );
 }
 

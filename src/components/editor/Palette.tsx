@@ -26,7 +26,7 @@ export function Palette() {
     // and measured it (a frame or two), then bring the whole flow into sight.
     const reveal = (triesLeft: number) => {
       if (store.getState().flow.view.measured[id]) {
-        requestAnimationFrame(() => fitView({ padding: 0.25, maxZoom: 1, duration: 300 }));
+        requestAnimationFrame(() => fitView({ padding: 0.12, maxZoom: 1, duration: 300 }));
       } else if (triesLeft > 0) {
         requestAnimationFrame(() => reveal(triesLeft - 1));
       }
@@ -47,7 +47,7 @@ export function Palette() {
   };
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-surface" aria-label="Blocks">
+    <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface" aria-label="Blocks">
       <div className="border-b border-line p-3">
         <label className="relative block">
           <span className="sr-only">Search blocks</span>
