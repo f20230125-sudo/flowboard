@@ -31,7 +31,7 @@ Nothing to install, no account, no key.
 - **Checks before a run:** one trigger, no loops, required settings, references to blocks that do not exist or do not run first. Each problem is listed in plain words and marked on its block.
 - **Flows you can move:** export to a file, import it back, or copy a share link that carries the whole flow in the address.
 - **Light and dark themes**, and keyboard shortcuts for what you do often (press `?` in the editor).
-- **AI at no cost to anyone but you:** the AI step uses your own key for Gemini, Groq, OpenAI or any compatible service. Without a key it returns a sample reply, labelled as a sample.
+- **AI at no cost to anyone but you:** the AI step uses your own key for Gemini, Groq, OpenAI or any compatible service. Without a key it returns a sample reply, labelled as a sample. A model that answers "busy" is asked again, and one that does not answer within a minute is given up on, with a message that says what to do.
 
 ![The run panel after a failed request, showing the error and what the server sent back](docs/screenshots/failed.png)
 
@@ -162,7 +162,7 @@ Settings for your own copy:
 ## Tests
 
 ```bash
-npm test             # 295 unit tests (Vitest)
+npm test             # 302 unit tests (Vitest)
 npm run e2e          # 33 end-to-end tests (Playwright)
 npm run lint
 npm run typecheck

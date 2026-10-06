@@ -136,6 +136,11 @@ function NumberField({ spec, value, onChange }: FieldProps) {
 
   const commit = () => {
     const parsed = Number(draft);
+    // Emptied on purpose: the setting is switched off.
+    if (draft.trim() === "" && spec.optional) {
+      if (value !== null) onChange(null);
+      return;
+    }
     if (draft.trim() === "" || Number.isNaN(parsed)) {
       setDraft(String(value ?? ""));
       return;
@@ -157,6 +162,7 @@ function NumberField({ spec, value, onChange }: FieldProps) {
         min={spec.min}
         max={spec.max}
         step={spec.step}
+        placeholder={spec.placeholder}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={commit}
         onKeyDown={(event) => {

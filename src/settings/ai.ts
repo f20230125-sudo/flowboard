@@ -21,6 +21,10 @@ type Preset = {
    * A starting point only. The dialog can list what the key really has access to.
    * Checked against each provider's own model list on 6 October 2026: providers
    * retire models, and a name that worked last year may refuse a new key.
+   *
+   * The starting model is a small, quick one on purpose. Tried with a real free
+   * key that day, Gemini's largest Flash model was either busy (503) or took
+   * 25 to 40 seconds for one word, while Flash-Lite answered in under two.
    */
   model: string;
   keyPage?: string;
@@ -31,7 +35,7 @@ export const AI_PRESETS: Record<Exclude<AiProvider, "none">, Preset> = {
   gemini: {
     label: "Google Gemini",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    model: "gemini-3.8-flash",
+    model: "gemini-3.5-flash-lite",
     keyPage: "https://aistudio.google.com/apikey",
     note: "Has a free tier. Create a key in Google AI Studio.",
   },

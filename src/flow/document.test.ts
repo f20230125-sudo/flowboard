@@ -42,6 +42,21 @@ describe("parseFlow", () => {
     expect(parsed.ok && parsed.flow.nodes[1].config).toMatchObject({ url: "https://api.example.com", timeoutMs: 5000, retries: 0 });
   });
 
+  it("keeps a temperature a flow already set, and sets none on a new AI step", () => {
+    const withAi = (config: object) => ({
+      version: 1,
+      id: "ai",
+      name: "AI",
+      updatedAt: "2026-10-05T00:00:00.000Z",
+      nodes: [{ id: "a", type: "ai", name: "ask", position: { x: 0, y: 0 }, config }],
+      edges: [],
+    });
+    const old = parseFlow(withAi({ prompt: "Hi", temperature: 0.2 }));
+    expect(old.ok && old.flow.nodes[0].config).toMatchObject({ temperature: 0.2 });
+    const fresh = parseFlow(withAi({ prompt: "Hi" }));
+    expect(fresh.ok && fresh.flow.nodes[0].config).toMatchObject({ temperature: null });
+  });
+
   it("accepts what the app itself writes", () => {
     const doc = flow([block("trigger", "start"), block("output", "result")], ["start>result"]);
     expect(parseFlow(JSON.parse(JSON.stringify(doc)))).toEqual({ ok: true, flow: doc });

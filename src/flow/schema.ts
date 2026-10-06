@@ -81,7 +81,12 @@ const aiConfig = z.object({
   prompt: z.string().default(""),
   /** Empty means: use the model chosen in Settings. */
   model: z.string().default(""),
-  temperature: z.number().min(0).max(2).default(0.2),
+  /**
+   * Null means: leave it to the model. That is the default because newer
+   * models are tuned for their own setting, and Google advises against
+   * lowering it for Gemini 3.
+   */
+  temperature: z.number().min(0).max(2).nullable().default(null),
   /** Ask the model for JSON and parse its reply. */
   json: z.boolean().default(false),
   /** Returned, labelled as a sample, when no key is set. */

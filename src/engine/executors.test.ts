@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { defaultConfig } from "@/flow/catalog";
 import type { ConfigOf, NodeType } from "@/flow/schema";
-import { EXECUTORS, FIRST_RETRY_WAIT_MS } from "./executors";
+import { AI_EXTRA_TRIES, AI_TIMEOUT_MS, EXECUTORS, FIRST_RETRY_WAIT_MS } from "./executors";
 import type { Scope } from "./reference";
 import { StepError, abortError, type AiSettings, type ExecContext } from "./types";
 
@@ -415,6 +415,78 @@ describe("ai", () => {
     const error = await failure(EXECUTORS.ai(settings("ai", { prompt: "Hi" }), context({ fetch, ai: key })));
     expect(error.code).toBe("ai_refused");
     expect(error.message).toBe("The AI service answered 401. Invalid API key.");
+  });
+
+  it("leaves the temperature to the model unless the block sets one", async () => {
+    const fetch = vi.fn<FakeFetch>(async () => reply("ok"));
+    await EXECUTORS.ai(settings("ai", { prompt: "Hi" }), context({ fetch, ai: key }));
+    expect(JSON.parse(fetch.mock.calls[0][1]!.body as string)).toEqual({
+      model: "small-model",
+      messages: [{ role: "user", content: "Hi" }],
+    });
+  });
+
+  // What Gemini really answered a valid free key on 6 October 2026.
+  const busy = () =>
+    json(
+      { error: { code: 503, message: "This model is currently experiencing high demand. Please try again later.", status: "UNAVAILABLE" } },
+      { status: 503 },
+    );
+
+  it("asks a busy model again, and says which try was answered", async () => {
+    const fetch = vi.fn<FakeFetch>().mockResolvedValueOnce(busy()).mockResolvedValueOnce(reply("ok"));
+    const sleep = vi.fn<ExecContext["sleep"]>(async () => {});
+    const result = await EXECUTORS.ai(settings("ai", { prompt: "Hi" }), context({ fetch, sleep, ai: key }));
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(FIRST_RETRY_WAIT_MS * 2, expect.anything());
+    expect(result.output).toMatchObject({ text: "ok", sample: false });
+    expect(result.note).toBe("Answered on try 2 of 3.");
+  });
+
+  it("gives up on a model that stays busy, and points at Settings", async () => {
+    const fetch = vi.fn<FakeFetch>(async () => busy());
+    const error = await failure(EXECUTORS.ai(settings("ai", { prompt: "Hi" }), context({ fetch, ai: key })));
+    expect(fetch).toHaveBeenCalledTimes(AI_EXTRA_TRIES + 1);
+    expect(error.code).toBe("ai_refused");
+    expect(error.message).toBe(
+      "The AI service answered 503 after 3 tries. This model is currently experiencing high demand. Please try again later. Another model in Settings may be less busy.",
+    );
+  });
+
+  it("does not ask again when the key's allowance is used up", async () => {
+    const fetch = vi.fn<FakeFetch>(async () => json({ error: { message: "Quota exceeded." } }, { status: 429 }));
+    const error = await failure(EXECUTORS.ai(settings("ai", { prompt: "Hi" }), context({ fetch, ai: key })));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(error.message).toBe("The AI service answered 429. Quota exceeded.");
+  });
+
+  it("stops waiting for a model that does not answer in time", async () => {
+    vi.useFakeTimers();
+    try {
+      // A model that never answers: it only reacts to being cut off.
+      const fetch = vi.fn<FakeFetch>(
+        (_url, init) => new Promise((_resolve, reject) => init!.signal!.addEventListener("abort", () => reject(abortError()))),
+      );
+      const pending = failure(EXECUTORS.ai(settings("ai", { prompt: "Hi" }), context({ fetch, ai: key })));
+      await vi.advanceTimersByTimeAsync(AI_TIMEOUT_MS);
+      const error = await pending;
+      expect(error.code).toBe("timeout");
+      expect(error.message).toContain("did not answer within 60 seconds");
+      // Waiting a minute is long enough: it is not tried again.
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops at once when the run is stopped while the model is thinking", async () => {
+    const stop = new AbortController();
+    const fetch: FakeFetch = (_url, init) =>
+      new Promise((_resolve, reject) => init!.signal!.addEventListener("abort", () => reject(abortError())));
+    const pending = EXECUTORS.ai(settings("ai", { prompt: "Hi" }), context({ fetch, ai: key, signal: stop.signal }));
+    stop.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   });
 
   it("reads a refusal that comes wrapped in a list, as Gemini sends it", async () => {

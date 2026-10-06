@@ -1,7 +1,7 @@
 import type { ConfigOf } from "@/flow/schema";
 import { evaluate } from "./condition";
 import { render, renderText, renderValue, type Json } from "./reference";
-import { StepError, errorMessage, isAbortError, type ExecContext, type Executor, type ExecutorMap } from "./types";
+import { StepError, abortError, errorMessage, isAbortError, type ExecContext, type Executor, type ExecutorMap } from "./types";
 
 // What each block does when it runs. Every executor is a plain async function
 // of (settings, context) → output, so each one can be tested on its own.
@@ -14,6 +14,39 @@ const BUSY_STATUSES = new Set([429, 502, 503, 504]);
 const PASSING_FAILURES = new Set(["network", "timeout"]);
 /** The wait before the second try. It doubles for each try after that. */
 export const FIRST_RETRY_WAIT_MS = 500;
+
+/** How long one call to a model may take. A large model can think for a while. */
+export const AI_TIMEOUT_MS = 60_000;
+/** A model that says it is busy is asked this many more times. */
+export const AI_EXTRA_TRIES = 2;
+/**
+ * What a busy model answers. 429 is left out on purpose: it means the key's
+ * allowance is used up, and asking again a second later only uses more of it.
+ */
+const AI_BUSY_STATUSES = new Set([502, 503, 504]);
+
+/**
+ * A signal for one call. It fires when the call's time is up or when the run
+ * is stopped, whichever comes first; `timedOut()` says afterwards which it was.
+ */
+function timeLimit(ms: number, context: ExecContext) {
+  const limit = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    limit.abort();
+  }, ms);
+  const onStop = () => limit.abort();
+  context.signal.addEventListener("abort", onStop, { once: true });
+  return {
+    signal: limit.signal,
+    timedOut: () => timedOut,
+    clear() {
+      clearTimeout(timer);
+      context.signal.removeEventListener("abort", onStop);
+    },
+  };
+}
 
 const trigger: Executor<"trigger"> = async (config) => {
   const text = config.payload.trim();
@@ -116,23 +149,15 @@ const http: Executor<"http"> = async (config, context) => {
   /** One try, with its own time limit. */
   const callOnce = async (): Promise<Answer> => {
     // Two things can cut the call short: the step's own time limit, and Stop.
-    const timeout = new AbortController();
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      timeout.abort();
-    }, config.timeoutMs);
-    const onStop = () => timeout.abort();
-    context.signal.addEventListener("abort", onStop, { once: true });
-
+    const limit = timeLimit(config.timeoutMs, context);
     try {
       return config.via === "server"
-        ? await callThroughRelay(url, { method: config.method, headers, body, timeoutMs: config.timeoutMs }, timeout.signal, context)
-        : await callDirect(url, { method: config.method, headers, body, signal: timeout.signal }, context);
+        ? await callThroughRelay(url, { method: config.method, headers, body, timeoutMs: config.timeoutMs }, limit.signal, context)
+        : await callDirect(url, { method: config.method, headers, body, signal: limit.signal }, context);
     } catch (problem) {
       if (problem instanceof StepError) throw problem;
       if (context.signal.aborted) throw problem;
-      if (timedOut || isAbortError(problem)) {
+      if (limit.timedOut() || isAbortError(problem)) {
         throw new StepError("timeout", `${url.host} did not answer within ${config.timeoutMs / 1000} seconds.`);
       }
       const hint =
@@ -141,8 +166,7 @@ const http: Executor<"http"> = async (config, context) => {
           : "The address may be wrong, the server may be down, or it may refuse calls from a browser. For the last case, turn on \"Send through server\".";
       throw new StepError("network", `Could not reach ${url.host}. ${hint}`);
     } finally {
-      clearTimeout(timer);
-      context.signal.removeEventListener("abort", onStop);
+      limit.clear();
     }
   };
 
@@ -295,38 +319,61 @@ const ai: Executor<"ai"> = async (config, context) => {
     { role: "user", content: prompt },
   ];
 
-  let response: Response;
-  try {
-    response = await context.fetch(`${context.ai.baseUrl.replace(/\/+$/, "")}/chat/completions`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: config.temperature,
-        ...(config.json ? { response_format: { type: "json_object" } } : {}),
-      }),
-      signal: context.signal,
-    });
-  } catch (problem) {
-    if (context.signal.aborted) throw problem;
-    throw new StepError("network", "Could not reach the AI service. Check the address in Settings.");
+  const address = `${context.ai.baseUrl.replace(/\/+$/, "")}/chat/completions`;
+  const request = JSON.stringify({
+    model,
+    messages,
+    ...(config.temperature === null ? {} : { temperature: config.temperature }),
+    ...(config.json ? { response_format: { type: "json_object" } } : {}),
+  });
+
+  type Reply = { status: number; ok: boolean; statusText: string; data: unknown };
+
+  /** One call, read to the end within its time limit. */
+  const callOnce = async (): Promise<Reply> => {
+    const limit = timeLimit(AI_TIMEOUT_MS, context);
+    try {
+      const response = await context.fetch(address, { method: "POST", headers, body: request, signal: limit.signal });
+      const data: unknown = await response.json().catch(() => null);
+      if (limit.signal.aborted) throw abortError();
+      return { status: response.status, ok: response.ok, statusText: response.statusText, data };
+    } catch (problem) {
+      if (context.signal.aborted) throw problem;
+      if (limit.timedOut()) {
+        throw new StepError(
+          "timeout",
+          `The AI service did not answer within ${AI_TIMEOUT_MS / 1000} seconds. The model may be busy: try again, or choose a quicker one in Settings.`,
+        );
+      }
+      throw new StepError("network", "Could not reach the AI service. Check the address in Settings.");
+    } finally {
+      limit.clear();
+    }
+  };
+
+  // A model that is busy says so at once, and often is not a moment later.
+  let reply: Reply;
+  let tries = 0;
+  for (;;) {
+    tries += 1;
+    reply = await callOnce();
+    if (!AI_BUSY_STATUSES.has(reply.status) || tries > AI_EXTRA_TRIES) break;
+    await context.sleep(FIRST_RETRY_WAIT_MS * 2 ** tries, context.signal);
   }
 
-  const data = (await response.json().catch(() => null)) as {
-    choices?: { message?: { content?: unknown } }[];
-  } | null;
-
-  if (!response.ok) {
-    const reason = errorMessage(data) ?? response.statusText;
-    throw new StepError("ai_refused", `The AI service answered ${response.status}. ${reason}`.trim());
+  if (!reply.ok) {
+    const reason = errorMessage(reply.data) ?? reply.statusText;
+    const after = tries > 1 ? ` after ${tries} tries` : "";
+    const hint = AI_BUSY_STATUSES.has(reply.status) ? " Another model in Settings may be less busy." : "";
+    throw new StepError("ai_refused", `${`The AI service answered ${reply.status}${after}. ${reason}`.trim()}${hint}`);
   }
 
-  const text = data?.choices?.[0]?.message?.content;
+  const text = (reply.data as { choices?: { message?: { content?: unknown } }[] } | null)?.choices?.[0]?.message?.content;
   if (typeof text !== "string" || text === "") {
     throw new StepError("ai_empty", "The AI service sent back no text.");
   }
-  return { output: shapeReply(text, config.json, model, false) };
+  const output = shapeReply(text, config.json, model, false);
+  return tries > 1 ? { output, note: `Answered on try ${tries} of ${AI_EXTRA_TRIES + 1}.` } : { output };
 };
 
 export const EXECUTORS: ExecutorMap = { trigger, http, condition, set, filter, ai, delay, output };
