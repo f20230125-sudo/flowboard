@@ -51,8 +51,9 @@ jobs:
           path: test-results/
           retention-days: 7
 
-  # Docker is not installed on the machine this project is written on, so this
-  # job is where the image is proven: it is built, started and asked to answer.
+  # Docker and Kubernetes are not installed on the machine this project is
+  # written on, so this job is where both are proven: the image is built,
+  # started and asked to answer, then run on a real cluster from the manifest.
   docker:
     runs-on: ubuntu-latest
     steps:
@@ -79,7 +80,43 @@ jobs:
           curl --fail --silent --output /dev/null http://localhost:3000/
           test "$(docker exec flowboard whoami)" = "flowboard"
 
-      # Checks the manifest against the Kubernetes schemas. It is not applied
-      # to a cluster here.
+      # Checks the shape of the manifest against the Kubernetes schemas.
       - name: Validate the Kubernetes manifest
         run: docker run --rm -v "$PWD/deploy:/deploy" ghcr.io/yannh/kubeconform:latest -strict -summary /deploy/k8s.yaml
+
+      # The shape being right does not mean the pods start. kind runs a real
+      # Kubernetes cluster inside Docker, so the manifest is applied for real:
+      # the pods have to start under its security settings and pass its probes.
+      - name: Start a one-node Kubernetes cluster
+        run: |
+          if ! command -v kind >/dev/null; then
+            curl -sSLo kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64
+            chmod +x kind && sudo mv kind /usr/local/bin/kind
+          fi
+          kind create cluster --wait 120s
+
+      - name: Apply the manifest and wait for both copies to be ready
+        run: |
+          docker tag flowboard:ci flowboard:local
+          kind load docker-image flowboard:local
+          kubectl apply -f deploy/k8s.yaml
+          if ! kubectl rollout status deployment/flowboard --timeout=180s; then
+            kubectl describe pods -l app=flowboard
+            kubectl logs -l app=flowboard --tail=50 || true
+            exit 1
+          fi
+          test "$(kubectl get deployment flowboard -o jsonpath='{.status.readyReplicas}')" = "2"
+
+      - name: Call the app through the Service
+        run: |
+          kubectl port-forward service/flowboard 8080:80 >/dev/null 2>&1 &
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --output /dev/null http://localhost:8080/api/health; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://localhost:8080/api/health
+          curl --fail --silent http://localhost:8080/api/templates | grep -q '"heat-check"'
+          # Neither copy runs as root.
+          for pod in $(kubectl get pods -l app=flowboard -o name); do
+            test "$(kubectl exec "$pod" -- id -u)" = "10001"
+          done
