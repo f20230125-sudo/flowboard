@@ -5,6 +5,7 @@ import { Plus, X } from "lucide-react";
 import { OPERATOR_LABELS } from "@/engine/condition";
 import type { FieldSpec } from "@/flow/catalog";
 import { OPERATORS, type KeyValue } from "@/flow/schema";
+import { useReferencePicker } from "./ReferencePicker";
 
 // The inputs a block's settings are made of. Which ones a block gets is
 // decided by its entry in the catalogue, not here.
@@ -35,19 +36,26 @@ function Help({ children }: { children: React.ReactNode }) {
 
 function TextField({ spec, value, onChange }: FieldProps) {
   const id = useId();
+  const text = String(value ?? "");
+  const picker = useReferencePicker(id, text, onChange, spec.label, !spec.literal);
   return (
     <div>
       <Label htmlFor={id}>{spec.label}</Label>
-      <input
-        id={id}
-        type="text"
-        value={String(value ?? "")}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={spec.placeholder}
-        spellCheck={false}
-        autoComplete="off"
-        className={`${INPUT} ${MONO} h-8`}
-      />
+      <div className="relative">
+        <input
+          id={id}
+          type="text"
+          value={text}
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={picker.remember}
+          placeholder={spec.placeholder}
+          spellCheck={false}
+          autoComplete="off"
+          className={`${INPUT} ${MONO} h-8 ${picker.button ? "pr-8" : ""}`}
+        />
+        {picker.button}
+      </div>
+      {picker.panel}
       {spec.help && <Help>{spec.help}</Help>}
     </div>
   );
@@ -55,20 +63,27 @@ function TextField({ spec, value, onChange }: FieldProps) {
 
 function TextAreaField({ spec, value, onChange }: FieldProps) {
   const id = useId();
+  const text = String(value ?? "");
+  const picker = useReferencePicker(id, text, onChange, spec.label, !spec.literal);
   return (
     <div>
       <Label htmlFor={id}>{spec.label}</Label>
-      <textarea
-        id={id}
-        value={String(value ?? "")}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={spec.placeholder}
-        spellCheck={false}
-        rows={3}
-        // Grows with its content where the browser supports it.
-        style={{ fieldSizing: "content" } as React.CSSProperties}
-        className={`${INPUT} ${MONO} max-h-64 min-h-[4.5rem] resize-y py-1.5 leading-relaxed`}
-      />
+      <div className="relative">
+        <textarea
+          id={id}
+          value={text}
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={picker.remember}
+          placeholder={spec.placeholder}
+          spellCheck={false}
+          rows={3}
+          // Grows with its content where the browser supports it.
+          style={{ fieldSizing: "content" } as React.CSSProperties}
+          className={`${INPUT} ${MONO} block max-h-64 min-h-[4.5rem] resize-y py-1.5 leading-relaxed ${picker.button ? "pr-8" : ""}`}
+        />
+        {picker.button}
+      </div>
+      {picker.panel}
       {spec.help && <Help>{spec.help}</Help>}
     </div>
   );
@@ -202,6 +217,62 @@ function ToggleField({ spec, value, onChange }: FieldProps) {
   );
 }
 
+type PairRowProps = {
+  pair: KeyValue;
+  nameLabel: string;
+  valueLabel: string;
+  describe: (part: string) => string;
+  onChange: (patch: Partial<KeyValue>) => void;
+  onRemove: () => void;
+};
+
+/** One name/value row. The value may hold references, so it offers the picker. */
+function PairRow({ pair, nameLabel, valueLabel, describe, onChange, onRemove }: PairRowProps) {
+  const valueId = useId();
+  const picker = useReferencePicker(valueId, pair.value, (value) => onChange({ value }), describe(valueLabel));
+  return (
+    <div>
+      <div className="flex items-center gap-1.5">
+        <input
+          type="text"
+          value={pair.key}
+          onChange={(event) => onChange({ key: event.target.value })}
+          placeholder={nameLabel}
+          aria-label={describe(nameLabel)}
+          spellCheck={false}
+          autoComplete="off"
+          className={`${BOX} ${MONO} h-8 w-2/5 min-w-0`}
+        />
+        <div className="relative min-w-0 flex-1">
+          <input
+            id={valueId}
+            type="text"
+            value={pair.value}
+            onChange={(event) => onChange({ value: event.target.value })}
+            onBlur={picker.remember}
+            placeholder={valueLabel}
+            aria-label={describe(valueLabel)}
+            spellCheck={false}
+            autoComplete="off"
+            className={`${INPUT} ${MONO} h-8 ${picker.button ? "pr-8" : ""}`}
+          />
+          {picker.button}
+        </div>
+        <button
+          type="button"
+          aria-label={`Remove ${describe(nameLabel)}`}
+          title="Remove"
+          onClick={onRemove}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-faint hover:bg-surface-2 hover:text-bad"
+        >
+          <X size={14} />
+        </button>
+      </div>
+      {picker.panel}
+    </div>
+  );
+}
+
 function PairsField({ spec, value, onChange }: FieldProps) {
   const pairs = (Array.isArray(value) ? value : []) as KeyValue[];
   const [nameLabel, valueLabel] = spec.pairLabels ?? ["Name", "Value"];
@@ -210,41 +281,22 @@ function PairsField({ spec, value, onChange }: FieldProps) {
     onChange(pairs.map((pair, at) => (at === index ? { ...pair, ...patch } : pair)));
 
   return (
-    <fieldset>
+    // A fieldset is as wide as its content unless told otherwise, and an open
+    // list of values is wide.
+    <fieldset className="min-w-0">
       <legend className="mb-1 block text-xs font-medium text-muted">{spec.label}</legend>
       <div className="space-y-1.5">
         {pairs.map((pair, index) => (
-          <div key={index} className="flex items-center gap-1.5">
-            <input
-              type="text"
-              value={pair.key}
-              onChange={(event) => change(index, { key: event.target.value })}
-              placeholder={nameLabel}
-              aria-label={`${spec.label}: ${nameLabel.toLowerCase()} ${index + 1}`}
-              spellCheck={false}
-              autoComplete="off"
-              className={`${BOX} ${MONO} h-8 w-2/5 min-w-0`}
-            />
-            <input
-              type="text"
-              value={pair.value}
-              onChange={(event) => change(index, { value: event.target.value })}
-              placeholder={valueLabel}
-              aria-label={`${spec.label}: ${valueLabel.toLowerCase()} ${index + 1}`}
-              spellCheck={false}
-              autoComplete="off"
-              className={`${BOX} ${MONO} h-8 min-w-0 flex-1`}
-            />
-            <button
-              type="button"
-              aria-label={`Remove ${nameLabel.toLowerCase()} ${index + 1}`}
-              title="Remove"
-              onClick={() => onChange(pairs.filter((_pair, at) => at !== index))}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-faint hover:bg-surface-2 hover:text-bad"
-            >
-              <X size={14} />
-            </button>
-          </div>
+          <PairRow
+            key={index}
+            pair={pair}
+            nameLabel={nameLabel}
+            valueLabel={valueLabel}
+            // Read out as "Fields: value 2", so each row can be told apart.
+            describe={(part) => `${spec.label}: ${part.toLowerCase()} ${index + 1}`}
+            onChange={(patch) => change(index, patch)}
+            onRemove={() => onChange(pairs.filter((_pair, at) => at !== index))}
+          />
         ))}
       </div>
       <button

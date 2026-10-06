@@ -3,12 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryFlowRepository } from "@/storage/repository";
 import { block, flow } from "@/test/build";
 import { AUTOSAVE_DELAY_MS } from "./autosave";
-import { addBlock, connectBlocks, copySelection, duplicateSelection, openFlow, pasteBlocks, renameBlock, saveNow } from "./editorThunks";
+import { addBlock, connectBlocks, copySelection, duplicateSelection, openFlow, pasteBlocks, renameBlock, saveNow, tidyUp } from "./editorThunks";
 import { HISTORY_LIMIT, flowActions } from "./flowSlice";
+import { runActions } from "./runSlice";
 import {
   selectCanvasNodes,
   selectProblemBadge,
   selectProblems,
+  selectReferenceSources,
   selectSaveStatus,
   selectSelectedNode,
   selectUndoLabel,
@@ -384,6 +386,94 @@ describe("problems", () => {
     store.dispatch(flowActions.settingChanged({ nodeId: "call", key: "url", value: "https://api.example.com" }));
     expect(selectProblems(store.getState())).not.toBe(before);
     expect(selectProblems(store.getState())).toEqual([]);
+  });
+});
+
+describe("tidying up", () => {
+  const scattered = () => {
+    const doc = flow(
+      [block("trigger", "start"), block("condition", "check"), block("set", "yes"), block("set", "no")],
+      ["start>check", "check:true>yes", "check:false>no"],
+    );
+    // A pile: every block on the same spot.
+    return setup(doc);
+  };
+
+  it("lines the blocks up as one step that undo takes back", () => {
+    const { store, present } = scattered();
+    expect(store.dispatch(tidyUp())).toBe(true);
+
+    const place = (name: string) => present().nodes.find((node) => node.name === name)!.position;
+    expect(place("start")).toEqual({ x: 0, y: 0 });
+    expect(place("check")).toEqual({ x: 280, y: 0 });
+    expect(place("yes").y).toBeLessThan(place("no").y);
+    expect(selectUndoLabel(store.getState())).toBe("Tidy up");
+
+    store.dispatch(flowActions.undo());
+    expect(present().nodes.every((node) => node.position.x === 0 && node.position.y === 0)).toBe(true);
+  });
+
+  it("does nothing, and adds nothing to undo, when the blocks are already lined up", () => {
+    const { store } = scattered();
+    store.dispatch(tidyUp());
+    const steps = store.getState().flow.past.length;
+
+    expect(store.dispatch(tidyUp())).toBe(false);
+    expect(store.getState().flow.past).toHaveLength(steps);
+  });
+});
+
+describe("what a block can read", () => {
+  const doc = () =>
+    flow(
+      [
+        block("trigger", "start", { payload: '{"city":"Dubai"}' }),
+        block("http", "weather"),
+        block("condition", "isHot"),
+        block("output", "hot"),
+        block("set", "aside"),
+      ],
+      ["start>weather", "weather>isHot", "isHot:true>hot"],
+    );
+
+  it("offers the trigger's sample data and the steps before the block, nearest first", () => {
+    const { store } = setup(doc());
+    expect(selectReferenceSources(store.getState(), "hot")).toEqual([
+      { path: "trigger", value: { city: "Dubai" } },
+      { path: "steps.isHot", value: undefined },
+      { path: "steps.weather", value: undefined },
+    ]);
+    // A block does not read itself, what comes after it, or another path.
+    expect(selectReferenceSources(store.getState(), "weather").map((source) => source.path)).toEqual(["trigger"]);
+    // The trigger starts the flow, so there is nothing before it.
+    expect(selectReferenceSources(store.getState(), "start")).toEqual([]);
+  });
+
+  it("shows what each step returned in the last run", () => {
+    const { store } = setup(doc());
+    store.dispatch(runActions.eventReceived({ runId: store.getState().run.runId, event: { type: "node-started", nodeId: "weather", input: {}, at: 0 } }));
+    store.dispatch(
+      runActions.eventReceived({
+        runId: store.getState().run.runId,
+        event: { type: "node-finished", nodeId: "weather", output: { status: 200, body: { temp: 41 } }, ms: 12 },
+      }),
+    );
+    expect(selectReferenceSources(store.getState(), "isHot")).toEqual([
+      { path: "trigger", value: { city: "Dubai" } },
+      { path: "steps.weather", value: { status: 200, body: { temp: 41 } }, status: "succeeded" },
+    ]);
+  });
+
+  it("says when a step before the block was skipped, so it has no data to offer", () => {
+    const { store } = setup(doc());
+    const runId = store.getState().run.runId;
+    store.dispatch(runActions.eventReceived({ runId, event: { type: "node-skipped", nodeId: "isHot", reason: "no-data" } }));
+    expect(selectReferenceSources(store.getState(), "hot")[1]).toEqual({ path: "steps.isHot", value: undefined, status: "skipped" });
+  });
+
+  it("hands back the same list until something changes, so the panel does not redraw", () => {
+    const { store } = setup(doc());
+    expect(selectReferenceSources(store.getState(), "hot")).toBe(selectReferenceSources(store.getState(), "hot"));
   });
 });
 

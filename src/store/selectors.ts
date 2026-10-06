@@ -1,9 +1,12 @@
 import { createSelector, lruMemoize } from "@reduxjs/toolkit";
 import type { Edge, Node } from "@xyflow/react";
+import type { Json } from "@/engine/reference";
+import { ancestorsOf, topologicalOrder } from "@/flow/graph";
 import { FLOW_VERSION, type FlowDocument, type FlowEdge, type FlowNode } from "@/flow/schema";
 import { validateFlow, type Problem } from "@/flow/validate";
 import { toAiSettings } from "@/settings/ai";
 import type { FlowState } from "./flowSlice";
+import type { StepStatus } from "./runSlice";
 import type { RootState } from "./store";
 
 // Everything components read from the store goes through these. The ones
@@ -181,6 +184,52 @@ export const selectRunMs = (state: RootState) => state.run.ms;
 export const selectOpenStepId = (state: RootState) => state.run.openStepId;
 export const selectBottomTab = (state: RootState) => state.ui.bottomTab;
 export const selectShortcutsOpen = (state: RootState) => state.ui.shortcutsOpen;
+
+/** One thing a block can read: the trigger's data, or what an earlier step returned. */
+export type ReferenceSource = {
+  /** How it is written in a reference: "trigger" or "steps.getWeather". */
+  path: string;
+  /** Its data, or undefined when that step returned none in the last run. */
+  value?: Json;
+  /** How the step ended in the last run. Undefined when it has not run. */
+  status?: StepStatus;
+};
+
+function sampleData(payload: string): Json | undefined {
+  try {
+    return payload.trim() === "" ? {} : (JSON.parse(payload) as Json);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * What the block `nodeId` can use in its settings: the trigger's sample data,
+ * then every step that runs before it, nearest first, with what it returned in
+ * the last run.
+ */
+export const selectReferenceSources = createSelector(
+  [selectNodes, selectEdges, selectRunSteps, (_state: RootState, nodeId: string) => nodeId],
+  (nodes, edges, steps, nodeId): ReferenceSource[] => {
+    const self = nodes.find((node) => node.id === nodeId);
+    if (!self || self.type === "trigger") return [];
+
+    const sources: ReferenceSource[] = [];
+    const trigger = nodes.find((node) => node.type === "trigger");
+    // The sample data as it is typed now, which may be newer than the last run.
+    if (trigger) sources.push({ path: "trigger", value: sampleData(trigger.config.payload) ?? steps[trigger.id]?.output });
+
+    const before = ancestorsOf(nodeId, edges);
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+    for (const id of topologicalOrder(nodes, edges).reverse()) {
+      const node = byId.get(id)!;
+      if (before.has(id) && node.type !== "trigger") {
+        sources.push({ path: `steps.${node.name}`, value: steps[id]?.output, status: steps[id]?.status });
+      }
+    }
+    return sources;
+  },
+);
 
 export const selectErrorCount = createSelector(
   [selectProblems],

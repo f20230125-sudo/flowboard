@@ -28,6 +28,8 @@ export type FieldSpec = {
   step?: number;
   /** Labels for the two columns of a "pairs" field. */
   pairLabels?: [string, string];
+  /** The text is used exactly as typed: references in it are not filled in. */
+  literal?: boolean;
   /** Hide the field unless this returns true for the block's settings. */
   showWhen?: (config: Record<string, unknown>) => boolean;
 };
@@ -102,6 +104,15 @@ export const CATALOG: { [T in NodeType]: BlockSpec<T> } = {
         help: "Some APIs refuse calls from a browser. For those, send the call through Flowboard's server.",
       },
       { key: "timeoutMs", label: "Give up after (ms)", kind: "number", min: 1000, max: 30000, step: 1000 },
+      {
+        key: "retries",
+        label: "Extra tries",
+        kind: "number",
+        min: 0,
+        max: 3,
+        step: 1,
+        help: "Calls again when the server is busy or cannot be reached (429, 502, 503, 504, or no answer in time), waiting a little longer each time. Leave at 0 for a call that must not happen twice.",
+      },
     ],
   },
   condition: {
@@ -176,9 +187,10 @@ export const CATALOG: { [T in NodeType]: BlockSpec<T> } = {
         key: "sample",
         label: "Sample reply",
         kind: "textarea",
+        literal: true,
         help: "Used when no key is set in Settings, and shown as a sample.",
       },
-      { key: "model", label: "Model", kind: "text", placeholder: "Leave empty to use the one in Settings" },
+      { key: "model", label: "Model", kind: "text", literal: true, placeholder: "Leave empty to use the one in Settings" },
       { key: "temperature", label: "Temperature", kind: "number", min: 0, max: 2, step: 0.1 },
     ],
   },

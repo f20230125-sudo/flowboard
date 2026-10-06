@@ -91,6 +91,20 @@ describe("listModels", () => {
     expect(offline).toEqual({ ok: false, message: "Could not reach the service. Check the address." });
   });
 
+  it("shows what Gemini says about a bad key, which is a 400 and not a 401", async () => {
+    const refused = await listModels(
+      presetConfig("gemini", "bad"),
+      (async () => json({ error: { code: 400, message: "Please pass a valid API key", status: "INVALID_ARGUMENT" } }, 400)) as typeof fetch,
+    );
+    expect(refused).toEqual({ ok: false, message: "The service answered 400. Please pass a valid API key" });
+
+    const wrapped = await listModels(
+      presetConfig("gemini", "bad"),
+      (async () => json([{ error: { message: "Missing or invalid Authorization header." } }], 400)) as typeof fetch,
+    );
+    expect(wrapped).toEqual({ ok: false, message: "The service answered 400. Missing or invalid Authorization header." });
+  });
+
   it("asks for an address before trying", async () => {
     const fetcher = vi.fn();
     const answer = await listModels({ provider: "custom", baseUrl: " ", apiKey: "", model: "" }, fetcher as unknown as typeof fetch);

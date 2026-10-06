@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CATALOG } from "@/flow/catalog";
 import { canConnect, freeOutput, placeNear } from "@/flow/connect";
 import { cloneSelection, createEdge, createNode } from "@/flow/document";
+import { tidyLayout } from "@/flow/layout";
 import { NODE_NAME_PATTERN, flowDocumentSchema, type NodeType } from "@/flow/schema";
 import { api } from "./api";
 import { flowActions } from "./flowSlice";
@@ -85,6 +86,20 @@ export const renameBlock =
     dispatch(flowActions.blockRenamed({ nodeId, name: trimmed }));
     return null;
   };
+
+/**
+ * Line the blocks up in columns, in the order they run. Returns false when
+ * they already are, so a second press does not add an empty step to undo.
+ */
+export const tidyUp = (): AppThunk<boolean> => (dispatch, getState) => {
+  const { present, view } = getState().flow;
+  const positions = tidyLayout(present.nodes, present.edges, view.measured);
+  const moved = present.nodes.some(
+    (node) => positions[node.id].x !== node.position.x || positions[node.id].y !== node.position.y,
+  );
+  if (moved) dispatch(flowActions.layoutApplied(positions));
+  return moved;
+};
 
 // --- Copy, paste, duplicate ---------------------------------------------------
 

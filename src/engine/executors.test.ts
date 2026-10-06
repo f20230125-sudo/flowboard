@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { defaultConfig } from "@/flow/catalog";
 import type { ConfigOf, NodeType } from "@/flow/schema";
-import { EXECUTORS } from "./executors";
+import { EXECUTORS, FIRST_RETRY_WAIT_MS } from "./executors";
 import type { Scope } from "./reference";
 import { StepError, abortError, type AiSettings, type ExecContext } from "./types";
 
@@ -186,6 +186,85 @@ describe("http", () => {
   });
 });
 
+describe("http, with extra tries", () => {
+  const busy = () => json({ reason: "Busy" }, { status: 503, statusText: "Service Unavailable" });
+
+  it("asks again when the server is busy, waiting longer each time, and says which try worked", async () => {
+    const fetch = vi.fn<FakeFetch>().mockResolvedValueOnce(busy()).mockResolvedValueOnce(busy()).mockResolvedValueOnce(json({ temp: 41 }));
+    const sleep = vi.fn<ExecContext["sleep"]>(async () => {});
+    const result = await EXECUTORS.http(settings("http", { url: "https://api.example.com/weather", retries: 2 }), context({ fetch, sleep }));
+
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(sleep.mock.calls.map(([ms]) => ms)).toEqual([FIRST_RETRY_WAIT_MS, FIRST_RETRY_WAIT_MS * 2]);
+    expect(result.output).toMatchObject({ status: 200, body: { temp: 41 } });
+    expect(result.note).toBe("Answered on try 3 of 3.");
+  });
+
+  it("gives up after the last try and says how many it made", async () => {
+    const fetch = vi.fn<FakeFetch>(async () => busy());
+    const error = await failure(
+      EXECUTORS.http(settings("http", { url: "https://api.example.com/weather", retries: 2 }), context({ fetch })),
+    );
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(error.code).toBe("http_status");
+    expect(error.message).toBe("api.example.com answered 503 Service Unavailable after 3 tries.");
+    expect(error.detail).toMatchObject({ status: 503, body: { reason: "Busy" } });
+  });
+
+  it("asks again when the server cannot be reached", async () => {
+    const fetch = vi.fn<FakeFetch>().mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce(json({ ok: true }));
+    const result = await EXECUTORS.http(settings("http", { url: "https://api.example.com", retries: 1 }), context({ fetch }));
+    expect(result.note).toBe("Answered on try 2 of 2.");
+
+    const down = vi.fn<FakeFetch>(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    const error = await failure(EXECUTORS.http(settings("http", { url: "https://down.example.com", retries: 1 }), context({ fetch: down })));
+    expect(down).toHaveBeenCalledTimes(2);
+    expect(error.code).toBe("network");
+    expect(error.message).toMatch(/^Could not reach down\.example\.com\..* Tried 2 times\.$/);
+  });
+
+  it("does not ask again for an answer that would be the same next time", async () => {
+    const fetch = vi.fn<FakeFetch>(async () => json({ message: "Not Found" }, { status: 404 }));
+    await failure(EXECUTORS.http(settings("http", { url: "https://api.example.com/nope", retries: 3 }), context({ fetch })));
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls once when no extra tries are set, which is the default", async () => {
+    const fetch = vi.fn<FakeFetch>(async () => busy());
+    const error = await failure(EXECUTORS.http(settings("http", { url: "https://api.example.com/weather" }), context({ fetch })));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(error.message).toBe("api.example.com answered 503 Service Unavailable.");
+  });
+
+  it("hands a busy answer on as data after the last try, when told not to fail", async () => {
+    const fetch = vi.fn<FakeFetch>(async () => busy());
+    const result = await EXECUTORS.http(
+      settings("http", { url: "https://api.example.com/weather", retries: 1, failOnError: false }),
+      context({ fetch }),
+    );
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(result.output).toMatchObject({ status: 503, ok: false });
+  });
+
+  it("stops waiting for the next try when the run is stopped", async () => {
+    const stop = new AbortController();
+    const fetch = vi.fn<FakeFetch>(async () => busy());
+    // Stop arrives during the wait between tries.
+    const sleep = async () => {
+      stop.abort();
+      throw abortError();
+    };
+    const pending = EXECUTORS.http(
+      settings("http", { url: "https://api.example.com/weather", retries: 3 }),
+      context({ fetch, sleep, signal: stop.signal }),
+    );
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("condition", () => {
   it("picks the true side", async () => {
     const result = await EXECUTORS.condition(
@@ -336,6 +415,14 @@ describe("ai", () => {
     const error = await failure(EXECUTORS.ai(settings("ai", { prompt: "Hi" }), context({ fetch, ai: key })));
     expect(error.code).toBe("ai_refused");
     expect(error.message).toBe("The AI service answered 401. Invalid API key.");
+  });
+
+  it("reads a refusal that comes wrapped in a list, as Gemini sends it", async () => {
+    // What Gemini's chat endpoint really answers to a bad key (checked 6 October 2026).
+    const fetch = async () =>
+      json([{ error: { code: 400, message: "Please pass a valid API key", status: "INVALID_ARGUMENT" } }], { status: 400 });
+    const error = await failure(EXECUTORS.ai(settings("ai", { prompt: "Hi" }), context({ fetch, ai: key })));
+    expect(error.message).toBe("The AI service answered 400. Please pass a valid API key");
   });
 
   it("fails when JSON was expected and the reply is not JSON", async () => {

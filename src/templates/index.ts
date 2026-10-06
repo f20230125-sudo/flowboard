@@ -4,6 +4,9 @@ import { FLOW_VERSION, type ConfigOf, type FlowDocument, type FlowEdge, type Flo
 // Ready-made flows. Each one runs as it is, with no key and no account: the
 // APIs they call are free and accept calls from a browser, and the AI steps
 // carry a sample reply for when no key is set.
+//
+// Free APIs are sometimes busy for a moment, so the requests that only read
+// data ask again. The one that creates something (escalate) does not.
 
 export type Template = {
   id: string;
@@ -72,6 +75,7 @@ const heatCheck = template(
     }),
     block("http", "getWeather", 1, 1, {
       url: "https://api.open-meteo.com/v1/forecast",
+      retries: 2,
       query: [
         { key: "latitude", value: "{{ trigger.latitude }}" },
         { key: "longitude", value: "{{ trigger.longitude }}" },
@@ -109,7 +113,7 @@ const dirhamRate = template(
   ["HTTP request", "Condition", "Set fields"],
   [
     block("trigger", "start", 0, 1, { payload: JSON.stringify({ target: 26.5 }, null, 2) }),
-    block("http", "getRates", 1, 1, { url: "https://open.er-api.com/v6/latest/AED" }),
+    block("http", "getRates", 1, 1, { url: "https://open.er-api.com/v6/latest/AED", retries: 2 }),
     block("condition", "reachedTarget", 2, 1, {
       left: "{{ steps.getRates.body.rates.INR }}",
       operator: "greaterOrEqual",
@@ -148,6 +152,7 @@ const repoDigest = template(
     block("trigger", "start", 0, 0, { payload: JSON.stringify({ account: "vercel", minimumStars: 1000 }, null, 2) }),
     block("http", "getRepos", 1, 0, {
       url: "https://api.github.com/users/{{ trigger.account }}/repos",
+      retries: 2,
       query: [
         { key: "sort", value: "updated" },
         { key: "per_page", value: "10" },
