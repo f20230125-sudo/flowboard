@@ -105,6 +105,10 @@ Six decisions shape the code.
 
 The canvas is [React Flow](https://reactflow.dev) run as a controlled component: it holds no state of its own, and every move, selection and connection goes through the store.
 
+## See what a run did, in Hindsight
+
+The **Open in Hindsight** button in the Run panel hands the last run to [Hindsight](https://github.com/f20230125-sudo/hindsight) ([live](https://hindsight-sand.vercel.app)), an observer for agents, which draws it on a timeline, one bar for each block that ran. What goes is each block's name and kind, how the blocks were joined, and the times and the data that passed through; never what a block is set up to do, because that can hold keys. It is handed over with `postMessage` addressed to Hindsight alone, and saved as a file if the new tab is blocked. The format is `src/hindsight/export.ts`.
+
 ## The REST API
 
 | Route | What it does |
