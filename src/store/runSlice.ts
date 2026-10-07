@@ -20,12 +20,16 @@ export type StepState = {
   error?: StepFailure;
   reason?: SkipReason;
   ms?: number;
+  /** When the block began, in milliseconds since 1970. Kept so the run can be laid out on a timeline. */
+  startedAt?: number;
 };
 
 export type RunState = {
   status: "idle" | "running" | RunStatus;
   /** Goes up with each run, so late events from an earlier run can be told apart. */
   runId: number;
+  /** When the run began, in milliseconds since 1970. */
+  startedAt: number | null;
   ms: number | null;
   steps: Record<string, StepState>;
   /** Block ids in the order the engine reached them. */
@@ -38,6 +42,7 @@ export type RunState = {
 const initialState: RunState = {
   status: "idle",
   runId: 0,
+  startedAt: null,
   ms: null,
   steps: {},
   order: [],
@@ -67,11 +72,13 @@ const runSlice = createSlice({
 
       switch (event.type) {
         case "run-started":
+          state.startedAt = event.at;
           break;
         case "node-started": {
           const step = touch(event.nodeId);
           step.status = "running";
           step.input = event.input;
+          step.startedAt = event.at;
           break;
         }
         case "node-finished": {

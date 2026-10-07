@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useReactFlow } from "@xyflow/react";
-import { Ban, Check, CircleAlert, LoaderCircle, SkipForward, TriangleAlert, X } from "lucide-react";
+import { Ban, Check, CircleAlert, ExternalLink, LoaderCircle, SkipForward, TriangleAlert, X } from "lucide-react";
 import { CATALOG } from "@/flow/catalog";
 import type { FlowNode } from "@/flow/schema";
+import { exportRun } from "@/hindsight/export";
+import { describeSend, sendToHindsight } from "@/hindsight/send";
 import { flowActions } from "@/store/flowSlice";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector, useAppStore } from "@/store/hooks";
 import { runActions, type StepState } from "@/store/runSlice";
 import {
   selectBottomTab,
@@ -37,6 +39,19 @@ export function BottomPanel() {
   const ms = useAppSelector(selectRunMs);
   const problems = useAppSelector(selectProblems);
   const errorCount = useAppSelector(selectErrorCount);
+  const store = useAppStore();
+  const { showToast } = useToast();
+
+  /** Hands the last run to Hindsight, an observer for agents. Called from the click, so the new tab is not blocked. */
+  const openInHindsight = () => {
+    const { flow, run } = store.getState();
+    const envelope = exportRun({ name: flow.present.name, nodes: flow.present.nodes, edges: flow.present.edges }, run);
+    void sendToHindsight(envelope, `hindsight-flowboard-run-${run.runId}.json`).then((result) => {
+      const { message, tone } = describeSend(result);
+      showToast(message, { tone });
+    });
+  };
+  const hasFinishedRun = status === "succeeded" || status === "failed" || status === "stopped";
 
   const runSummary =
     status === "idle"
@@ -74,11 +89,23 @@ export function BottomPanel() {
           )}
         </TabButton>
         </div>
-        {tab && (
-          <IconButton label="Close the panel" className="ml-auto h-7 w-7" onClick={() => dispatch(uiActions.bottomTabSet(null))}>
-            <X size={14} />
-          </IconButton>
-        )}
+        <div className="ml-auto flex items-center gap-1">
+          {hasFinishedRun && (
+            <button
+              type="button"
+              onClick={openInHindsight}
+              className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              <ExternalLink size={12} aria-hidden="true" />
+              Open in Hindsight
+            </button>
+          )}
+          {tab && (
+            <IconButton label="Close the panel" className="h-7 w-7" onClick={() => dispatch(uiActions.bottomTabSet(null))}>
+              <X size={14} />
+            </IconButton>
+          )}
+        </div>
       </div>
 
       {tab && (
