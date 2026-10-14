@@ -2,6 +2,7 @@
 //
 //   npm run diagram
 //
+// Colours follow DESIGN.md (the dark theme's ink and ground; the one hue is the current's orchid, on wires).
 // The picture is plain SVG with its own background, so it reads the same on
 // GitHub's light and dark themes and anywhere else it is shown. Every label is
 // placed by hand below; the chips() helper stops the script if one would not
@@ -13,22 +14,22 @@ const W = 1280;
 const H = 784;
 
 const C = {
-  bg: "#0b0d10",
-  panel: "#101318",
-  panelLine: "#262b34",
-  box: "#161a20",
-  boxLine: "#2c323d",
-  chip: "#20252d",
-  chipLine: "#363d49",
-  text: "#e8eaee",
-  muted: "#aab2bd",
-  faint: "#8b94a1",
-  accent: "#9090f8",
-  blue: "#6aa8ff",
-  violet: "#b197fc",
-  amber: "#f5b942",
-  green: "#3ddc97",
-  rose: "#ff7a9c",
+  bg: "#131a1b",
+  panel: "#1b2324",
+  panelLine: "#2b3637",
+  box: "#242e2f",
+  boxLine: "#3b4a4b",
+  chip: "#242e2f",
+  chipLine: "#4a5a5b",
+  text: "#e8f0f0",
+  muted: "#b9c6c7",
+  faint: "#93a2a3",
+  accent: "#e48be1",
+  blue: "#e8f0f0",
+  violet: "#b9c6c7",
+  amber: "#93a2a3",
+  green: "#e8f0f0",
+  rose: "#b9c6c7",
 };
 
 const SANS = "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";

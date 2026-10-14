@@ -79,6 +79,7 @@ export const api = createApi({
 });
 
 export const {
+  useGetTemplateQuery,
   useListTemplatesQuery,
   useLazyGetTemplateQuery,
   useListFlowsQuery,

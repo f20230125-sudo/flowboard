@@ -30,12 +30,12 @@ export function TopBar({ children }: { children?: React.ReactNode }) {
   const redoLabel = useAppSelector(selectRedoLabel);
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-surface px-2">
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-rule bg-sheet px-2">
       <Link
         href="/"
         aria-label="Back to all flows"
         title="All flows"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-ink-2 transition-colors hover:bg-sheet-2 hover:text-ink"
       >
         <ArrowLeft size={16} />
       </Link>
@@ -61,7 +61,7 @@ export function TopBar({ children }: { children?: React.ReactNode }) {
         >
           <Redo2 size={16} />
         </IconButton>
-        <span className="mx-1 hidden h-5 w-px bg-line lg:block" aria-hidden />
+        <span className="mx-1 hidden h-5 w-px bg-rule lg:block" aria-hidden />
         <ThemeToggle />
         <FlowMenu />
         {children}
@@ -78,7 +78,7 @@ function RunButton() {
 
   if (running) {
     return (
-      <Button variant="outline" className="ml-1 w-[84px]" onClick={() => dispatch(stopRun())}>
+      <Button variant="outline" className="ml-1 w-[84px] max-lg:h-11" onClick={() => dispatch(stopRun())}>
         <Square size={12} fill="currentColor" /> Stop
       </Button>
     );
@@ -86,7 +86,7 @@ function RunButton() {
   return (
     <Button
       variant="primary"
-      className="ml-1 w-[84px]"
+      className="ml-1 w-[84px] max-lg:h-11"
       // With errors the button still answers: it opens the list of what to fix.
       title={errorCount > 0 ? "Fix the problems first. Click to see them." : "Run the flow (Ctrl+Enter)"}
       onClick={() => dispatch(startRun())}
@@ -122,7 +122,7 @@ function FlowName({ name }: { name: string }) {
         }
       }}
       maxLength={80}
-      className="h-8 w-28 min-w-0 rounded-lg sm:w-56 border border-transparent bg-transparent px-2 text-sm font-semibold text-fg transition-colors hover:border-line focus:border-line focus:bg-bg"
+      className="h-8 w-28 min-w-0 rounded-control border border-transparent bg-transparent px-2 text-sm font-bold text-ink transition-colors hover:border-edge focus:border-edge focus:bg-sheet sm:w-56"
     />
   );
 }
@@ -133,13 +133,13 @@ function SaveStatus() {
 
   if (status === "failed") {
     return (
-      <span className="hidden items-center gap-1.5 text-xs text-bad sm:flex" role="alert" title={error ?? undefined}>
+      <span className="hidden items-center gap-1.5 text-xs text-fail sm:flex" role="alert" title={error ?? undefined}>
         <CloudOff size={14} /> Not saved
       </span>
     );
   }
   return (
-    <span className="hidden items-center gap-1.5 text-xs text-faint sm:flex" aria-live="polite">
+    <span className="hidden items-center gap-1.5 text-xs text-ink-3 sm:flex" aria-live="polite">
       {status === "saving" ? (
         <>
           <LoaderCircle size={13} className="animate-spin" /> Saving
